@@ -119,24 +119,53 @@ theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 9
 text = "🏠 Menu"
 
-[node name="AudioControls" type="HBoxContainer" parent="Panel/VBoxContainer"]
+[node name="AudioHeader" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 1
+theme_override_colors/font_color = Color(0.7, 0.8, 0.95, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+text = "AUDIO CONTROLS"
+horizontal_alignment = 1
 
-[node name="MusicCheck" type="CheckBox" parent="Panel/VBoxContainer/AudioControls"]
+[node name="MusicBox" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MusicCheck" type="CheckBox" parent="Panel/VBoxContainer/MusicBox"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 8
 button_pressed = true
-text = "🎵 Mus"
+text = "🎵"
 
-[node name="SfxCheck" type="CheckBox" parent="Panel/VBoxContainer/AudioControls"]
+[node name="MusicSlider" type="HSlider" parent="Panel/VBoxContainer/MusicBox"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="SfxBox" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SfxCheck" type="CheckBox" parent="Panel/VBoxContainer/SfxBox"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 8
 button_pressed = true
-text = "🔊 SFX"
+text = "🔊"
+
+[node name="SfxSlider" type="HSlider" parent="Panel/VBoxContainer/SfxBox"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+value = 0.8
 
 [node name="RulesTip" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2

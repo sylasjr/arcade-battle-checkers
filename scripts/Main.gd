@@ -33,6 +33,8 @@ func _ready() -> void:
 	menu.theme_changed_request.connect(theme_manager.next_theme)
 	menu.music_toggled.connect(_on_music_toggled)
 	menu.sfx_toggled.connect(_on_sfx_toggled)
+	menu.music_volume_changed.connect(_on_music_volume_changed)
+	menu.sfx_volume_changed.connect(_on_sfx_volume_changed)
 
 	# Hero Select signals
 	hero_select.hero_chosen.connect(_on_hero_chosen)
@@ -46,6 +48,8 @@ func _ready() -> void:
 	ui.ult_activated_request.connect(board.activate_ultimate_request)
 	ui.music_toggled.connect(_on_music_toggled)
 	ui.sfx_toggled.connect(_on_sfx_toggled)
+	ui.music_volume_changed.connect(_on_music_volume_changed)
+	ui.sfx_volume_changed.connect(_on_sfx_volume_changed)
 
 	# Board signals
 	board.turn_changed.connect(_on_turn_changed)
@@ -74,7 +78,7 @@ func show_menu() -> void:
 	ui.visible = false
 	board.visible = false
 	board.set_process_unhandled_input(false)
-	menu.set_audio_states(is_music_enabled, is_sfx_enabled)
+	_sync_audio_states()
 
 func _on_start_arcade_mode(is_single_player: bool, diff: BotAI.Difficulty) -> void:
 	is_arcade_mode = true
@@ -137,14 +141,24 @@ func _on_diff_changed(new_diff: BotAI.Difficulty) -> void:
 func _on_music_toggled(enabled: bool) -> void:
 	is_music_enabled = enabled
 	audio_manager.toggle_music(enabled)
-	ui.sync_audio_ui(is_music_enabled, is_sfx_enabled)
-	menu.set_audio_states(is_music_enabled, is_sfx_enabled)
+	_sync_audio_states()
 
 func _on_sfx_toggled(enabled: bool) -> void:
 	is_sfx_enabled = enabled
 	audio_manager.toggle_sfx(enabled)
-	ui.sync_audio_ui(is_music_enabled, is_sfx_enabled)
-	menu.set_audio_states(is_music_enabled, is_sfx_enabled)
+	_sync_audio_states()
+
+func _on_music_volume_changed(vol: float) -> void:
+	audio_manager.set_music_volume(vol)
+	_sync_audio_states()
+
+func _on_sfx_volume_changed(vol: float) -> void:
+	audio_manager.set_sfx_volume(vol)
+	_sync_audio_states()
+
+func _sync_audio_states() -> void:
+	ui.sync_audio_ui(is_music_enabled, is_sfx_enabled, audio_manager.music_volume, audio_manager.sfx_volume)
+	menu.set_audio_states(is_music_enabled, is_sfx_enabled, audio_manager.music_volume, audio_manager.sfx_volume)
 
 func _on_piece_captured(world_pos: Vector2, victim_player: Piece.Player) -> void:
 	audio_manager.play_capture()

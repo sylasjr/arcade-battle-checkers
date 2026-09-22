@@ -5,6 +5,8 @@ var music_player: AudioStreamPlayer
 var music_stream: AudioStream = null
 var is_music_muted: bool = false
 var is_sfx_muted: bool = false
+var music_volume: float = 0.8 # Range 0.0 to 1.0
+var sfx_volume: float = 0.8   # Range 0.0 to 1.0
 
 # SFX Streams
 var sfx_select: AudioStreamWAV
@@ -24,21 +26,55 @@ func _ready() -> void:
 	music_player.bus = "Master"
 	add_child(music_player)
 
-	if ResourceLoader.exists("res://Audio/nastelbom-soundtrack-443631.mp3"):
-		music_stream = load("res://Audio/nastelbom-soundtrack-443631.mp3")
-		music_player.stream = music_stream
-		music_player.volume_db = -8.0
-		music_player.play()
+	# Ensure looping on track end
+	music_player.finished.connect(_on_music_finished)
+
+	var sound_candidates = [
+		"res://audio/Tides_at_the_Cottage_Door.mp3",
+		"res://Audio/Tides_at_the_Cottage_Door.mp3",
+		"res://audio/nastelbom-soundtrack-443631.mp3",
+		"res://Audio/nastelbom-soundtrack-443631.mp3"
+	]
+	
+	for path in sound_candidates:
+		if ResourceLoader.exists(path):
+			music_stream = load(path)
+			if music_stream is AudioStreamMP3:
+				music_stream.loop = true
+			music_player.stream = music_stream
+			_apply_music_volume()
+			music_player.play()
+			break
 
 	_generate_sfx()
+
+func _on_music_finished() -> void:
+	if not is_music_muted and music_player and music_stream:
+		music_player.play()
+
+func set_music_volume(linear_val: float) -> void:
+	music_volume = clampf(linear_val, 0.0, 1.0)
+	_apply_music_volume()
+
+func set_sfx_volume(linear_val: float) -> void:
+	sfx_volume = clampf(linear_val, 0.0, 1.0)
+
+func _apply_music_volume() -> void:
+	if not music_player:
+		return
+	if is_music_muted or music_volume <= 0.001:
+		music_player.volume_db = -80.0
+	else:
+		# Convert linear 0.0-1.0 to dB scale (-35 dB to +2 dB)
+		music_player.volume_db = linear_to_db(music_volume) - 4.0
 
 func toggle_music(enabled: bool) -> void:
 	is_music_muted = !enabled
 	if music_player:
 		if enabled:
+			_apply_music_volume()
 			if not music_player.playing and music_stream != null:
 				music_player.play()
-			music_player.volume_db = -8.0
 		else:
 			music_player.stop()
 
@@ -86,9 +122,12 @@ func play_win() -> void:
 		_play_sfx(sfx_win, 3.0)
 
 func _play_sfx(stream: AudioStreamWAV, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
+	if is_sfx_muted or sfx_volume <= 0.001:
+		return
 	var p = AudioStreamPlayer.new()
 	p.stream = stream
-	p.volume_db = volume_db
+	var sfx_vol_db = linear_to_db(sfx_volume)
+	p.volume_db = volume_db + sfx_vol_db
 	p.pitch_scale = pitch_scale
 	add_child(p)
 	p.play()

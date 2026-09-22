@@ -7,6 +7,8 @@ signal diff_changed_request(new_diff: BotAI.Difficulty)
 signal ult_activated_request
 signal music_toggled(is_enabled: bool)
 signal sfx_toggled(is_enabled: bool)
+signal music_volume_changed(volume: float)
+signal sfx_volume_changed(volume: float)
 
 @onready var mode_label: Label = $Panel/VBoxContainer/ModeLabel
 @onready var turn_label: Label = $Panel/VBoxContainer/TurnLabel
@@ -22,8 +24,10 @@ signal sfx_toggled(is_enabled: bool)
 @onready var ult_bar: ProgressBar = $Panel/VBoxContainer/HeroBox/UltProgressBar
 @onready var ult_btn: Button = $Panel/VBoxContainer/HeroBox/UltButton
 
-@onready var music_check: CheckBox = $Panel/VBoxContainer/AudioControls/MusicCheck
-@onready var sfx_check: CheckBox = $Panel/VBoxContainer/AudioControls/SfxCheck
+@onready var music_check: CheckBox = $Panel/VBoxContainer/MusicBox/MusicCheck
+@onready var music_slider: HSlider = $Panel/VBoxContainer/MusicBox/MusicSlider
+@onready var sfx_check: CheckBox = $Panel/VBoxContainer/SfxBox/SfxCheck
+@onready var sfx_slider: HSlider = $Panel/VBoxContainer/SfxBox/SfxSlider
 
 @onready var win_dialog: PanelContainer = $WinDialog
 @onready var win_label: Label = $WinDialog/VBox/WinLabel
@@ -46,6 +50,8 @@ func _ready() -> void:
 	win_menu_btn.pressed.connect(_on_menu_pressed)
 	music_check.toggled.connect(_on_music_toggled)
 	sfx_check.toggled.connect(_on_sfx_toggled)
+	music_slider.value_changed.connect(func(val): emit_signal("music_volume_changed", val))
+	sfx_slider.value_changed.connect(func(val): emit_signal("sfx_volume_changed", val))
 
 func set_mode_display(single_player: bool, arcade: bool, diff: BotAI.Difficulty) -> void:
 	is_single_player = single_player
@@ -119,8 +125,12 @@ func _on_music_toggled(button_pressed: bool) -> void:
 func _on_sfx_toggled(button_pressed: bool) -> void:
 	emit_signal("sfx_toggled", button_pressed)
 
-func sync_audio_ui(music_on: bool, sfx_on: bool) -> void:
+func sync_audio_ui(music_on: bool, sfx_on: bool, music_vol: float = 0.8, sfx_vol: float = 0.8) -> void:
 	if music_check:
 		music_check.button_pressed = music_on
 	if sfx_check:
 		sfx_check.button_pressed = sfx_on
+	if music_slider:
+		music_slider.value = music_vol
+	if sfx_slider:
+		sfx_slider.value = sfx_vol
