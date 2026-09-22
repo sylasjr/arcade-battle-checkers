@@ -64,10 +64,16 @@ func apply_theme(p_theme: Dictionary) -> void:
 
 func _load_current_texture() -> void:
 	var tex_path = ""
-	if player == Player.RED:
-		tex_path = theme_data.get("red_texture", "res://textures/piece_dark.png")
+	if is_king:
+		if player == Player.RED:
+			tex_path = theme_data.get("red_king_texture", "res://textures/runes/crimson_red_star.png")
+		else:
+			tex_path = theme_data.get("black_king_texture", "res://textures/runes/sand_light_star.png")
 	else:
-		tex_path = theme_data.get("black_texture", "res://textures/piece_light.png")
+		if player == Player.RED:
+			tex_path = theme_data.get("red_texture", "res://textures/runes/crimson_red_cross.png")
+		else:
+			tex_path = theme_data.get("black_texture", "res://textures/runes/sand_light_circle.png")
 
 	if ResourceLoader.exists(tex_path):
 		piece_texture = load(tex_path)
@@ -197,6 +203,7 @@ func move_to(new_grid_pos: Vector2i, animate: bool = true) -> void:
 
 func promote_to_king() -> void:
 	is_king = true
+	_load_current_texture()
 	queue_redraw()
 	var tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2(1.25, 1.25), 0.15)
