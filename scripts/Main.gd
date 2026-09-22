@@ -114,7 +114,7 @@ func _launch_game() -> void:
 	board.bot_difficulty = current_bot_diff
 	
 	ui.set_mode_display(pending_is_single_player, is_arcade_mode, current_bot_diff)
-	ui.sync_audio_ui(is_music_enabled, is_sfx_enabled)
+	_sync_audio_states()
 	
 	board.start_new_game()
 	_update_hero_hud()
