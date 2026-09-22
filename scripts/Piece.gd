@@ -24,8 +24,9 @@ var flame_timer: float = 0.0
 var ghost_spawn_timer: float = 0.0
 var move_speed: float = 0.26
 
-# Theme Colors
+# Texture & Theme Data
 var theme_data: Dictionary = {}
+var piece_texture: Texture2D = null
 
 func _ready() -> void:
 	update_appearance()
@@ -47,12 +48,24 @@ func setup(p_player: Player, p_grid_pos: Vector2i, p_tile_size: float, p_theme: 
 	grid_pos = p_grid_pos
 	tile_size = p_tile_size
 	theme_data = p_theme
+	_load_current_texture()
 	position = grid_to_world(grid_pos)
 	queue_redraw()
 
 func apply_theme(p_theme: Dictionary) -> void:
 	theme_data = p_theme
+	_load_current_texture()
 	queue_redraw()
+
+func _load_current_texture() -> void:
+	var tex_path = ""
+	if player == Player.RED:
+		tex_path = theme_data.get("red_texture", "res://textures/piece_dark.png")
+	else:
+		tex_path = theme_data.get("black_texture", "res://textures/piece_light.png")
+
+	if ResourceLoader.exists(tex_path):
+		piece_texture = load(tex_path)
 
 func grid_to_world(coord: Vector2i) -> Vector2:
 	return Vector2(coord.x * tile_size + tile_size * 0.5, coord.y * tile_size + tile_size * 0.5)
@@ -142,9 +155,9 @@ func spawn_balanced_ghost() -> void:
 	elif has_lightning:
 		main_col = Color(0.2, 0.9, 1.0)
 	elif player == Player.RED:
-		main_col = theme_data.get("red_main", Color(0.95, 0.28, 0.24))
+		main_col = theme_data.get("red_main", Color(0.55, 0.20, 0.25))
 	else:
-		main_col = theme_data.get("black_main", Color(0.24, 0.28, 0.36))
+		main_col = theme_data.get("black_main", Color(0.95, 0.75, 0.45))
 	
 	ghost.setup(position, tile_size * 0.38, main_col)
 	get_parent().add_child(ghost)
@@ -182,70 +195,57 @@ func promote_to_king() -> void:
 	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15)
 
 func update_appearance() -> void:
+	_load_current_texture()
 	queue_redraw()
 
 func _draw() -> void:
-	var radius = tile_size * 0.4
-	var main_color: Color
-	var border_color: Color
-	var inner_color: Color
+	var piece_draw_size = tile_size * 0.82
+	var half_s = piece_draw_size * 0.5
 
-	if is_on_fire:
-		main_color = Color(1.0, 0.32, 0.05)
-		border_color = Color(1.0, 0.85, 0.2)
-		inner_color = Color(1.0, 0.95, 0.6)
-	elif has_lightning:
-		main_color = Color(0.15, 0.75, 1.0)
-		border_color = Color(0.9, 0.95, 1.0)
-		inner_color = Color(0.8, 1.0, 1.0)
-	elif player == Player.RED:
-		main_color = theme_data.get("red_main", Color(0.92, 0.25, 0.22))
-		border_color = theme_data.get("red_border", Color(0.72, 0.15, 0.12))
-		inner_color = theme_data.get("red_inner", Color(1.0, 0.45, 0.42))
-	else:
-		main_color = theme_data.get("black_main", Color(0.18, 0.20, 0.25))
-		border_color = theme_data.get("black_border", Color(0.08, 0.09, 0.12))
-		inner_color = theme_data.get("black_inner", Color(0.32, 0.35, 0.42))
-
-	# Pixel-style Chunky Shadow
-	var shadow_offset = Vector2(0, 6) if is_moving else Vector2(0, 3)
-	draw_circle(shadow_offset, radius, Color(0, 0, 0, 0.35))
+	# Shadow
+	var shadow_offset = Vector2(0, 6) if is_moving else Vector2(0, 4)
+	draw_circle(shadow_offset, half_s * 0.95, Color(0, 0, 0, 0.35))
 
 	# Fire aura ring
 	if is_on_fire:
-		draw_circle(Vector2.ZERO, radius * 1.18, Color(1.0, 0.6, 0.1, 0.4))
-		draw_arc(Vector2.ZERO, radius * 1.25, 0, TAU, 16, Color(1.0, 0.85, 0.2, 0.7), 2.5)
+		draw_circle(Vector2.ZERO, half_s * 1.2, Color(1.0, 0.6, 0.1, 0.4))
+		draw_arc(Vector2.ZERO, half_s * 1.25, 0, TAU, 16, Color(1.0, 0.85, 0.2, 0.7), 2.5)
 
 	# Shield Energy Dome
 	if has_shield:
-		draw_circle(Vector2.ZERO, radius * 1.25, Color(0.1, 0.85, 1.0, 0.35))
-		draw_arc(Vector2.ZERO, radius * 1.3, 0, TAU, 24, Color(0.4, 0.95, 1.0, 0.9), 3.0)
+		draw_circle(Vector2.ZERO, half_s * 1.25, Color(0.1, 0.85, 1.0, 0.35))
+		draw_arc(Vector2.ZERO, half_s * 1.3, 0, TAU, 24, Color(0.4, 0.95, 1.0, 0.9), 3.0)
 
-	# Stepped Pixel-Style Checker Drawing
-	draw_circle(Vector2.ZERO, radius, border_color)
-	draw_circle(Vector2.ZERO, radius * 0.88, main_color)
-	draw_arc(Vector2.ZERO, radius * 0.62, 0, TAU, 16, border_color, 2.5)
-	draw_circle(Vector2.ZERO, radius * 0.38, inner_color)
-	draw_rect(Rect2(-radius * 0.45, -radius * 0.45, 5, 5), Color(1, 1, 1, 0.45))
+	# Lightning Aura
+	if has_lightning:
+		draw_arc(Vector2.ZERO, half_s * 1.15, 0, TAU, 16, Color(0.2, 0.9, 1.0, 0.85), 2.5)
+
+	# Draw Precise Pixel Art Texture Sprite (Matching user reference)
+	if piece_texture:
+		var rect = Rect2(-half_s, -half_s, piece_draw_size, piece_draw_size)
+		draw_texture_rect(piece_texture, rect, false)
+	else:
+		# Fallback draw
+		draw_circle(Vector2.ZERO, half_s, Color(0.5, 0.2, 0.2) if player == Player.RED else Color(0.9, 0.8, 0.5))
 
 	# King Crown
 	if is_king:
 		var gold = Color(1.0, 0.84, 0.0)
 		var gold_border = Color(0.70, 0.55, 0.0)
 		var crown_pts = PackedVector2Array([
-			Vector2(-12, 6),
-			Vector2(-14, -6),
-			Vector2(-6, -1),
-			Vector2(0, -10),
-			Vector2(6, -1),
-			Vector2(14, -6),
-			Vector2(12, 6)
+			Vector2(-12, 4),
+			Vector2(-14, -8),
+			Vector2(-6, -3),
+			Vector2(0, -12),
+			Vector2(6, -3),
+			Vector2(14, -8),
+			Vector2(12, 4)
 		])
 		draw_colored_polygon(crown_pts, gold)
 		draw_polyline(crown_pts, gold_border, 2.0, true)
-		draw_rect(Rect2(-15, -7, 4, 4), Color.WHITE)
-		draw_rect(Rect2(-2, -11, 4, 4), Color.WHITE)
-		draw_rect(Rect2(11, -7, 4, 4), Color.WHITE)
+		draw_rect(Rect2(-15, -9, 4, 4), Color.WHITE)
+		draw_rect(Rect2(-2, -13, 4, 4), Color.WHITE)
+		draw_rect(Rect2(11, -9, 4, 4), Color.WHITE)
 
 
 # Motion Blur Trail
