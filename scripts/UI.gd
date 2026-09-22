@@ -8,22 +8,22 @@ signal ult_activated_request
 signal music_toggled(is_enabled: bool)
 signal sfx_toggled(is_enabled: bool)
 
-@onready var mode_label: Label = $TopBar/VBox/TopRow/ModeLabel
-@onready var diff_btn: Button = $TopBar/VBox/TopRow/DiffBtn
-@onready var turn_label: Label = $TopBar/VBox/ScoreRow/TurnLabel
-@onready var score_label: Label = $TopBar/VBox/ScoreRow/ScoreLabel
+@onready var mode_label: Label = $Panel/VBoxContainer/ModeLabel
+@onready var turn_label: Label = $Panel/VBoxContainer/TurnLabel
+@onready var score_label: Label = $Panel/VBoxContainer/ScoreLabel
+@onready var theme_btn: Button = $Panel/VBoxContainer/ThemeBtn
+@onready var diff_btn: Button = $Panel/VBoxContainer/DiffBtn
+@onready var restart_button: Button = $Panel/VBoxContainer/RestartButton
+@onready var menu_button: Button = $Panel/VBoxContainer/MenuButton
 
-# Hero & Ultimate UI in BottomDeck
-@onready var hero_box: VBoxContainer = $BottomDeck/VBox/HeroBox
-@onready var hero_label: Label = $BottomDeck/VBox/HeroBox/HeroLabel
-@onready var ult_bar: ProgressBar = $BottomDeck/VBox/HeroBox/UltProgressBar
-@onready var ult_btn: Button = $BottomDeck/VBox/HeroBox/UltButton
+# Hero & Ultimate UI in Sidebar
+@onready var hero_box: VBoxContainer = $Panel/VBoxContainer/HeroBox
+@onready var hero_label: Label = $Panel/VBoxContainer/HeroBox/HeroLabel
+@onready var ult_bar: ProgressBar = $Panel/VBoxContainer/HeroBox/UltProgressBar
+@onready var ult_btn: Button = $Panel/VBoxContainer/HeroBox/UltButton
 
-@onready var theme_btn: Button = $BottomDeck/VBox/ButtonRow/ThemeBtn
-@onready var restart_button: Button = $BottomDeck/VBox/ButtonRow/RestartButton
-@onready var menu_button: Button = $BottomDeck/VBox/ButtonRow/MenuButton
-@onready var music_check: CheckBox = $BottomDeck/VBox/AudioRow/MusicCheck
-@onready var sfx_check: CheckBox = $BottomDeck/VBox/AudioRow/SfxCheck
+@onready var music_check: CheckBox = $Panel/VBoxContainer/AudioControls/MusicCheck
+@onready var sfx_check: CheckBox = $Panel/VBoxContainer/AudioControls/SfxCheck
 
 @onready var win_dialog: PanelContainer = $WinDialog
 @onready var win_label: Label = $WinDialog/VBox/WinLabel
@@ -33,7 +33,7 @@ signal sfx_toggled(is_enabled: bool)
 var is_single_player: bool = false
 var is_arcade_mode: bool = true
 var current_diff: BotAI.Difficulty = BotAI.Difficulty.MEDIUM
-var diff_names = ["EASY", "MED", "HARD"]
+var diff_names = ["EASY", "MEDIUM", "HARD"]
 
 func _ready() -> void:
 	win_dialog.visible = false
@@ -84,7 +84,7 @@ func _on_diff_pressed() -> void:
 
 func update_theme_label(theme_name: String) -> void:
 	if theme_btn:
-		theme_btn.text = theme_name
+		theme_btn.text = "Theme: " + theme_name
 
 func update_turn(player: Piece.Player) -> void:
 	if player == Piece.Player.RED:

@@ -29,17 +29,17 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -300.0
-offset_top = -450.0
+offset_top = -300.0
 offset_right = 300.0
-offset_bottom = 450.0
+offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 alignment = 1
 
 [node name="CrownIcon" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 36
 text = "👑"
 horizontal_alignment = 1
 
@@ -50,7 +50,7 @@ theme_override_colors/font_shadow_color = Color(0.9, 0.2, 0.2, 0.8)
 theme_override_constants/shadow_offset_x = 3
 theme_override_constants/shadow_offset_y = 3
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 28
 text = "CHECKERS"
 horizontal_alignment = 1
 
@@ -58,7 +58,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.85, 0.95, 1)
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 10
 text = "ARCADE BATTLE EDITION"
 horizontal_alignment = 1
 
@@ -69,22 +69,22 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.5, 0.2, 1)
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 12
-text = "⚔️ ARCADE BATTLE"
+theme_override_font_sizes/font_size = 11
+text = "⚔️ ARCADE BATTLE (Heroes & Powers)"
 horizontal_alignment = 1
 
 [node name="ArcadeSingleBtn" type="Button" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "⚔️ VS BOT (Arcade)"
 
 [node name="ArcadeMultiBtn" type="Button" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "👥 2 PLAYERS (Arcade)"
 
 [node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
@@ -94,28 +94,28 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 10
 text = "♟️ CLASSIC CHECKERS"
 horizontal_alignment = 1
 
 [node name="ClassicRow" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="ClassicSingleBtn" type="Button" parent="VBoxContainer/ClassicRow"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 text = "🤖 vs Bot"
 
 [node name="ClassicMultiBtn" type="Button" parent="VBoxContainer/ClassicRow"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 text = "👥 2P Classic"
 
 [node name="DiffContainer" type="HBoxContainer" parent="VBoxContainer"]
@@ -123,35 +123,35 @@ layout_mode = 2
 alignment = 1
 
 [node name="DiffBtn" type="Button" parent="VBoxContainer/DiffContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 text = "AI Level: MEDIUM"
 
 [node name="ThemeBtn" type="Button" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 text = "🎨 Theme: Classic Pixel"
 
 [node name="AudioContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 20
 alignment = 1
 
 [node name="MusicCheck" type="CheckBox" parent="VBoxContainer/AudioContainer"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 button_pressed = true
 text = "🎵 Music"
 
 [node name="SfxCheck" type="CheckBox" parent="VBoxContainer/AudioContainer"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 button_pressed = true
 text = "🔊 SFX"
