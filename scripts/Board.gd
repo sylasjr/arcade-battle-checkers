@@ -552,26 +552,72 @@ func _draw() -> void:
 			if hovered_tile == Vector2i(x, y) and is_dark:
 				draw_rect(tile_rect, Color(1, 1, 1, 0.14))
 
-	# 4. Draw Power-Up Orbs
+	# 4. Draw Power-Up Orbs & Recognized Pixel Glyphs
 	if is_arcade_mode:
 		for pos in powerup_manager.active_powers:
 			var p_data = powerup_manager.active_powers[pos]
 			var center = Vector2(pos.x * TILE_W + TILE_W * 0.5, pos.y * TILE_H + TILE_H * 0.5)
 			var icon_color: Color
-			if p_data.type == PowerUpManager.PowerType.BOMB:
-				icon_color = Color(1.0, 0.3, 0.2, 0.85)
-			elif p_data.type == PowerUpManager.PowerType.PORTAL:
-				icon_color = Color(0.8, 0.3, 1.0, 0.85)
-			elif p_data.type == PowerUpManager.PowerType.SHIELD:
-				icon_color = Color(0.2, 0.9, 1.0, 0.85)
-			else:
-				icon_color = Color(1.0, 0.9, 0.1, 0.85)
+			var rim_color: Color
 
-			# 2.5D Compressed Floating Orb
-			draw_circle(center + Vector2(0, 4), 14, Color(0, 0, 0, 0.3)) # ground shadow
-			draw_circle(center - Vector2(0, 2), 15, icon_color)
-			draw_arc(center - Vector2(0, 2), 18, 0, TAU, 16, Color(1, 1, 1, 0.9), 2.0)
-			draw_rect(Rect2(center.x - 3, center.y - 5, 6, 6), Color.WHITE)
+			if p_data.type == PowerUpManager.PowerType.BOMB:
+				icon_color = Color(0.2, 0.2, 0.22, 0.95) # Bomb dark charcoal base
+				rim_color = Color(1.0, 0.35, 0.1, 0.9)
+			elif p_data.type == PowerUpManager.PowerType.PORTAL:
+				icon_color = Color(0.2, 0.1, 0.35, 0.95) # Void purple
+				rim_color = Color(0.75, 0.25, 1.0, 0.9)
+			elif p_data.type == PowerUpManager.PowerType.SHIELD:
+				icon_color = Color(0.08, 0.25, 0.35, 0.95) # Cyan shield base
+				rim_color = Color(0.2, 0.9, 1.0, 0.9)
+			else:
+				icon_color = Color(0.35, 0.28, 0.05, 0.95) # Gold lightning base
+				rim_color = Color(1.0, 0.92, 0.2, 0.9)
+
+			# 2.5D Ground Shadow
+			draw_circle(center + Vector2(0, 5), 15, Color(0, 0, 0, 0.35))
+
+			# Orb Core and Glowing Rim
+			draw_circle(center - Vector2(0, 2), 16, icon_color)
+			draw_arc(center - Vector2(0, 2), 17, 0, TAU, 20, rim_color, 2.5)
+
+			# Draw Characteristic Pixel Glyph
+			var p_center = center - Vector2(0, 2)
+			if p_data.type == PowerUpManager.PowerType.BOMB:
+				# Bomb sphere + burning fuse
+				draw_circle(p_center + Vector2(0, 2), 9, Color(0.12, 0.12, 0.14))
+				draw_rect(Rect2(p_center.x - 2, p_center.y - 7, 4, 3), Color(0.4, 0.4, 0.45))
+				draw_line(p_center + Vector2(0, -6), p_center + Vector2(4, -10), Color(0.8, 0.6, 0.3), 2.0)
+				draw_circle(p_center + Vector2(5, -11), 3, Color(1.0, 0.8, 0.1)) # spark
+				draw_circle(p_center + Vector2(-3, 0), 2, Color.WHITE) # highlight
+			elif p_data.type == PowerUpManager.PowerType.PORTAL:
+				# Swirling Warp Vortex
+				draw_arc(p_center, 9, 0, PI * 1.3, 12, Color(0.9, 0.4, 1.0), 2.5)
+				draw_arc(p_center, 5, PI, PI * 2.3, 10, Color(0.4, 0.9, 1.0), 2.5)
+				draw_circle(p_center, 3, Color.WHITE)
+			elif p_data.type == PowerUpManager.PowerType.SHIELD:
+				# Medieval Knight Crest / Shield
+				var shield_pts = PackedVector2Array([
+					p_center + Vector2(-7, -7),
+					p_center + Vector2(7, -7),
+					p_center + Vector2(7, 1),
+					p_center + Vector2(0, 9),
+					p_center + Vector2(-7, 1)
+				])
+				draw_colored_polygon(shield_pts, Color(0.2, 0.85, 1.0))
+				draw_polyline(shield_pts, Color.WHITE, 1.5, true)
+				draw_line(p_center + Vector2(0, -6), p_center + Vector2(0, 7), Color.WHITE, 1.5)
+			else:
+				# Lightning Dash Bolt
+				var bolt_pts = PackedVector2Array([
+					p_center + Vector2(1, -9),
+					p_center + Vector2(-6, -1),
+					p_center + Vector2(0, -1),
+					p_center + Vector2(-3, 9),
+					p_center + Vector2(6, 0),
+					p_center + Vector2(1, 0)
+				])
+				draw_colored_polygon(bolt_pts, Color(1.0, 0.95, 0.2))
+				draw_polyline(bolt_pts, Color.WHITE, 1.5, true)
 
 	# 5. Highlight Selected Piece
 	if selected_piece != null:
