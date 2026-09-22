@@ -16,7 +16,10 @@ signal powerup_triggered(power_type: PowerUpManager.PowerType, world_pos: Vector
 signal energy_gained(player: Piece.Player, amount: float)
 
 const BOARD_SIZE = 8
-const TILE_SIZE = 80.0
+# Semi-orthogonal 3/4 foreshortened tile dimensions
+const TILE_W = 76.0
+const TILE_H = 62.0
+const FRONT_DEPTH = 22.0 # 3D Tabletop front ledge slab
 
 @export var piece_scene: PackedScene = preload("res://scenes/Piece.tscn")
 
@@ -32,7 +35,7 @@ var bot_difficulty: BotAI.Difficulty = BotAI.Difficulty.MEDIUM
 # Game Mode & PowerUps
 var is_arcade_mode: bool = true
 var powerup_manager: PowerUpManager = PowerUpManager.new()
-var hero_manager: HeroManager = null # Injected by Main
+var hero_manager: HeroManager = null
 
 # Targeting state for Ultimate abilities
 var is_targeting_ult: bool = false
@@ -81,7 +84,6 @@ func start_new_game() -> void:
 				elif y > 4:
 					spawn_piece(Piece.Player.RED, Vector2i(x, y))
 
-	# Spawn initial power-ups if in Arcade Mode
 	if is_arcade_mode:
 		_spawn_arcade_powerup()
 
@@ -92,7 +94,7 @@ func start_new_game() -> void:
 func spawn_piece(player: Piece.Player, pos: Vector2i) -> Piece:
 	var p: Piece = piece_scene.instantiate()
 	add_child(p)
-	p.setup(player, pos, TILE_SIZE, theme_data)
+	p.setup(player, pos, TILE_W, TILE_H, theme_data)
 	grid[pos] = p
 	return p
 
@@ -120,8 +122,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		handle_click(click_pos)
 
 func world_to_grid(world_pos: Vector2) -> Vector2i:
-	var x = int(floor(world_pos.x / TILE_SIZE))
-	var y = int(floor(world_pos.y / TILE_SIZE))
+	var x = int(floor(world_pos.x / TILE_W))
+	var y = int(floor(world_pos.y / TILE_H))
 	return Vector2i(x, y)
 
 func is_in_bounds(pos: Vector2i) -> bool:
@@ -131,7 +133,6 @@ func handle_click(clicked_pos: Vector2i) -> void:
 	if not is_in_bounds(clicked_pos):
 		return
 
-	# If currently aiming an Ultimate Ability
 	if is_targeting_ult:
 		_execute_targeted_ult(clicked_pos)
 		return
@@ -223,7 +224,6 @@ func execute_move(piece: Piece, move: Dictionary) -> void:
 
 	piece.move_to(new_pos)
 
-	# Consume lightning overcharge if used
 	if piece.has_lightning:
 		piece.consume_lightning()
 
@@ -233,12 +233,10 @@ func execute_move(piece: Piece, move: Dictionary) -> void:
 			hero_manager.add_energy(current_player, 15.0)
 			emit_signal("energy_gained", current_player, 15.0)
 
-	# Handle capture
 	if move.is_jump and move.jumped != null:
 		current_turn_kills += 1
 		var jumped_piece: Piece = move.jumped
 		
-		# Check if victim has an Energy Shield!
 		if jumped_piece.has_shield:
 			jumped_piece.break_shield()
 			emit_signal("powerup_triggered", PowerUpManager.PowerType.SHIELD, to_global(jumped_piece.position))
@@ -266,11 +264,9 @@ func execute_move(piece: Piece, move: Dictionary) -> void:
 				piece.ignite_fire(2.0)
 				emit_signal("piece_ignited", to_global(piece.position))
 
-	# Check and trigger Power-Up landing
 	if is_arcade_mode and powerup_manager.active_powers.has(new_pos):
 		_handle_powerup_landing(piece, new_pos)
 
-	# Check King Promotion
 	var promoted = false
 	if not piece.is_king:
 		if (piece.player == Piece.Player.RED and new_pos.y == 0) or (piece.player == Piece.Player.BLACK and new_pos.y == BOARD_SIZE - 1):
@@ -278,7 +274,6 @@ func execute_move(piece: Piece, move: Dictionary) -> void:
 			promoted = true
 			emit_signal("king_promoted")
 
-	# Multi-jump continuation
 	if move.is_jump and not promoted:
 		var next_jumps = get_piece_moves(piece).filter(func(m): return m.is_jump)
 		if next_jumps.size() > 0:
@@ -299,7 +294,6 @@ func _handle_powerup_landing(piece: Piece, pos: Vector2i) -> void:
 	emit_signal("powerup_triggered", p_type, to_global(piece.position))
 
 	if p_type == PowerUpManager.PowerType.BOMB:
-		# Bomb explodes adjacent cross enemies
 		var cross_dirs = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]
 		for d in cross_dirs:
 			var target_pos = pos + d
@@ -336,7 +330,6 @@ func switch_turn() -> void:
 	current_player = Piece.Player.BLACK if current_player == Piece.Player.RED else Piece.Player.RED
 	emit_signal("turn_changed", current_player)
 
-	# Spawn occasional new powerups in Arcade Mode every 3 turns
 	if is_arcade_mode and turn_counter % 3 == 0:
 		_spawn_arcade_powerup()
 
@@ -374,15 +367,12 @@ func activate_ultimate_request() -> void:
 	if not hero_manager or not hero_manager.is_ult_ready(current_player):
 		return
 
-	var h_data = hero_manager.get_hero_data(current_player)
 	var h_class = hero_manager.get_hero(current_player)
 
 	if h_class == HeroManager.HeroClass.TITAN:
-		# Titan instantly shields 2 friendly pieces
 		hero_manager.consume_ult(current_player)
 		_cast_titan_ult()
 	else:
-		# Pyromancer / Void Rogue enter targeting mode
 		is_targeting_ult = true
 		targeting_hero_class = h_class
 		queue_redraw()
@@ -410,7 +400,6 @@ func _execute_targeted_ult(clicked_pos: Vector2i) -> void:
 	var opp_player = Piece.Player.BLACK if current_player == Piece.Player.RED else Piece.Player.RED
 
 	if targeting_hero_class == HeroManager.HeroClass.PYROMANCER:
-		# Meteor strike obliterates enemy checker
 		if target_p.player == opp_player:
 			hero_manager.consume_ult(current_player)
 			grid.erase(clicked_pos)
@@ -421,7 +410,6 @@ func _execute_targeted_ult(clicked_pos: Vector2i) -> void:
 			switch_turn()
 
 	elif targeting_hero_class == HeroManager.HeroClass.VOID_ROGUE:
-		# Swap friendly with enemy
 		if target_p.player == opp_player:
 			var friendly_pieces: Array[Piece] = []
 			for pos in grid:
@@ -445,7 +433,6 @@ func trigger_bot_turn() -> void:
 	if current_player != bot_player:
 		return
 
-	# Bot automatically activates Ultimate if ready!
 	if is_arcade_mode and hero_manager and hero_manager.is_ult_ready(bot_player):
 		var bot_h = hero_manager.get_hero(bot_player)
 		if bot_h == HeroManager.HeroClass.TITAN:
@@ -505,60 +492,79 @@ func _draw() -> void:
 	var select_glow = theme_data.get("glow_color", Color(0.2, 0.8, 1.0, 0.4))
 	var valid_move_dot = Color(0.2, 0.9, 0.4, 0.7)
 
-	var total_w = BOARD_SIZE * TILE_SIZE
-	draw_rect(Rect2(-14, -14, total_w + 28, total_w + 28), board_border)
-	draw_rect(Rect2(-7, -7, total_w + 14, total_w + 14), inner_border)
+	var total_w = BOARD_SIZE * TILE_W
+	var total_h = BOARD_SIZE * TILE_H
 
+	# 1. 3D Tabletop Slab Underneath & Front Rim
+	var front_shadow_col = Color(board_border.r * 0.4, board_border.g * 0.4, board_border.b * 0.4, 1.0)
+	var front_face_col = Color(board_border.r * 0.65, board_border.g * 0.65, board_border.b * 0.65, 1.0)
+	
+	# Ground drop shadow
+	draw_rect(Rect2(-16, -12, total_w + 32, total_h + FRONT_DEPTH + 28), Color(0, 0, 0, 0.4))
+	
+	# Front Bevel Slab
+	draw_rect(Rect2(-14, total_h + 10, total_w + 28, FRONT_DEPTH), front_face_col)
+	draw_rect(Rect2(-14, total_h + FRONT_DEPTH + 8, total_w + 28, 6), front_shadow_col)
+
+	# 2. Main Tilted Top Frame Border
+	draw_rect(Rect2(-14, -14, total_w + 28, total_h + 28), board_border)
+	draw_rect(Rect2(-8, -8, total_w + 16, total_h + 16), inner_border)
+
+	# 3. Semi-Orthogonal Grid Tiles (76x62 Foreshortened)
 	for y in range(BOARD_SIZE):
 		for x in range(BOARD_SIZE):
 			var is_dark = (x + y) % 2 != 0
-			var tile_rect = Rect2(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+			var tile_rect = Rect2(x * TILE_W, y * TILE_H, TILE_W, TILE_H)
 			draw_rect(tile_rect, dark_tile if is_dark else light_tile)
 
+			# Crosshatch & Top-left pixel highlight notch for 2.5D stone/tile bevel
 			if is_dark:
-				draw_rect(Rect2(x * TILE_SIZE + 2, y * TILE_SIZE + 2, 4, 4), Color(1, 1, 1, 0.04))
+				draw_rect(Rect2(x * TILE_W + 1, y * TILE_H + 1, TILE_W - 2, 2), Color(1, 1, 1, 0.08)) # top bevel line
+				draw_rect(Rect2(x * TILE_W + 1, (y + 1) * TILE_H - 2, TILE_W - 2, 2), Color(0, 0, 0, 0.15)) # bottom shadow line
 
 			if hovered_tile == Vector2i(x, y) and is_dark:
-				draw_rect(tile_rect, Color(1, 1, 1, 0.12))
+				draw_rect(tile_rect, Color(1, 1, 1, 0.14))
 
-	# Draw Power-Up Orbs on Tiles
+	# 4. Draw Power-Up Orbs
 	if is_arcade_mode:
 		for pos in powerup_manager.active_powers:
 			var p_data = powerup_manager.active_powers[pos]
-			var center = Vector2(pos.x * TILE_SIZE + TILE_SIZE * 0.5, pos.y * TILE_SIZE + TILE_SIZE * 0.5)
+			var center = Vector2(pos.x * TILE_W + TILE_W * 0.5, pos.y * TILE_H + TILE_H * 0.5)
 			var icon_color: Color
 			if p_data.type == PowerUpManager.PowerType.BOMB:
-				icon_color = Color(1.0, 0.3, 0.2, 0.8)
+				icon_color = Color(1.0, 0.3, 0.2, 0.85)
 			elif p_data.type == PowerUpManager.PowerType.PORTAL:
-				icon_color = Color(0.8, 0.3, 1.0, 0.8)
+				icon_color = Color(0.8, 0.3, 1.0, 0.85)
 			elif p_data.type == PowerUpManager.PowerType.SHIELD:
-				icon_color = Color(0.2, 0.9, 1.0, 0.8)
+				icon_color = Color(0.2, 0.9, 1.0, 0.85)
 			else:
-				icon_color = Color(1.0, 0.9, 0.1, 0.8)
+				icon_color = Color(1.0, 0.9, 0.1, 0.85)
 
-			draw_circle(center, 16, icon_color)
-			draw_arc(center, 20, 0, TAU, 16, Color(1, 1, 1, 0.85), 2.0)
-			# Pixel star badge in center
-			draw_rect(Rect2(center.x - 4, center.y - 4, 8, 8), Color.WHITE)
+			# 2.5D Compressed Floating Orb
+			draw_circle(center + Vector2(0, 4), 14, Color(0, 0, 0, 0.3)) # ground shadow
+			draw_circle(center - Vector2(0, 2), 15, icon_color)
+			draw_arc(center - Vector2(0, 2), 18, 0, TAU, 16, Color(1, 1, 1, 0.9), 2.0)
+			draw_rect(Rect2(center.x - 3, center.y - 5, 6, 6), Color.WHITE)
 
-	# Highlight Selected Piece
+	# 5. Highlight Selected Piece
 	if selected_piece != null:
 		var p_pos = selected_piece.grid_pos
-		var sel_rect = Rect2(p_pos.x * TILE_SIZE, p_pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+		var sel_rect = Rect2(p_pos.x * TILE_W, p_pos.y * TILE_H, TILE_W, TILE_H)
 		draw_rect(sel_rect, select_glow)
 
-	# Targeting Ultimate Reticle overlay
+	# 6. Targeting Ultimate Reticle
 	if is_targeting_ult:
-		draw_rect(Rect2(0, 0, total_w, total_w), Color(1.0, 0.1, 0.1, 0.12))
+		draw_rect(Rect2(0, 0, total_w, total_h), Color(1.0, 0.1, 0.1, 0.14))
 		if is_in_bounds(hovered_tile):
-			var reticle_rect = Rect2(hovered_tile.x * TILE_SIZE, hovered_tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-			draw_rect(reticle_rect, Color(1.0, 0.2, 0.2, 0.5))
+			var reticle_rect = Rect2(hovered_tile.x * TILE_W, hovered_tile.y * TILE_H, TILE_W, TILE_H)
+			draw_rect(reticle_rect, Color(1.0, 0.2, 0.2, 0.55))
 
+	# 7. Valid Move Highlights
 	for move in valid_moves:
-		var center = Vector2(move.dest.x * TILE_SIZE + TILE_SIZE * 0.5, move.dest.y * TILE_SIZE + TILE_SIZE * 0.5)
+		var center = Vector2(move.dest.x * TILE_W + TILE_W * 0.5, move.dest.y * TILE_H + TILE_H * 0.5)
 		if move.is_jump:
-			draw_circle(center, 18, Color(1.0, 0.3, 0.3, 0.75))
-			draw_arc(center, 24, 0, TAU, 16, Color(1.0, 0.4, 0.4), 3.0)
+			draw_circle(center, 16, Color(1.0, 0.3, 0.3, 0.75))
+			draw_arc(center, 20, 0, TAU, 16, Color(1.0, 0.4, 0.4), 3.0)
 		else:
-			draw_circle(center, 14, valid_move_dot)
-			draw_arc(center, 18, 0, TAU, 16, Color(0.2, 0.9, 0.4), 2.0)
+			draw_circle(center, 12, valid_move_dot)
+			draw_arc(center, 16, 0, TAU, 16, Color(0.2, 0.9, 0.4), 2.0)

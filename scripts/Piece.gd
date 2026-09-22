@@ -7,7 +7,8 @@ enum Player { RED = 1, BLACK = 2 }
 @export var is_king: bool = false
 @export var grid_pos: Vector2i = Vector2i.ZERO
 
-var tile_size: float = 80.0
+var tile_w: float = 76.0
+var tile_h: float = 62.0
 var target_position: Vector2 = Vector2.ZERO
 var is_moving: bool = false
 
@@ -43,13 +44,17 @@ func _process(delta: float) -> void:
 		if flame_timer <= 0.0:
 			extinguish_fire()
 
-func setup(p_player: Player, p_grid_pos: Vector2i, p_tile_size: float, p_theme: Dictionary = {}) -> void:
+func setup(p_player: Player, p_grid_pos: Vector2i, p_tile_w: float, p_tile_h: float, p_theme: Dictionary = {}) -> void:
 	player = p_player
 	grid_pos = p_grid_pos
-	tile_size = p_tile_size
+	tile_w = p_tile_w
+	tile_h = p_tile_h
 	theme_data = p_theme
 	_load_current_texture()
 	position = grid_to_world(grid_pos)
+	# Y-sort so lower rows render in front of upper rows
+	z_as_relative = false
+	z_index = int(position.y)
 	queue_redraw()
 
 func apply_theme(p_theme: Dictionary) -> void:
@@ -68,7 +73,7 @@ func _load_current_texture() -> void:
 		piece_texture = load(tex_path)
 
 func grid_to_world(coord: Vector2i) -> Vector2:
-	return Vector2(coord.x * tile_size + tile_size * 0.5, coord.y * tile_size + tile_size * 0.5)
+	return Vector2(coord.x * tile_w + tile_w * 0.5, coord.y * tile_h + tile_h * 0.5)
 
 func give_shield() -> void:
 	has_shield = true
@@ -159,7 +164,7 @@ func spawn_balanced_ghost() -> void:
 	else:
 		main_col = theme_data.get("black_main", Color(0.95, 0.75, 0.45))
 	
-	ghost.setup(position, tile_size * 0.38, main_col)
+	ghost.setup(position, tile_w * 0.36, main_col)
 	get_parent().add_child(ghost)
 
 func move_to(new_grid_pos: Vector2i, animate: bool = true) -> void:
@@ -168,24 +173,27 @@ func move_to(new_grid_pos: Vector2i, animate: bool = true) -> void:
 	if animate:
 		is_moving = true
 		ghost_spawn_timer = 0.0
-		z_index = 10
+		z_index = 500 # Top elevation during transit
 
 		spawn_balanced_ghost()
 
 		var tween = create_tween().set_parallel(true)
 		tween.tween_property(self, "position", target, move_speed).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		
+		# Semi-orthogonal jump arc: upward hop along Y
+		var hop_y_offset = -14.0
 		var scale_tween = create_tween().set_parallel(false)
-		scale_tween.tween_property(self, "scale", Vector2(1.14, 1.14), move_speed * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		scale_tween.tween_property(self, "scale", Vector2(1.15, 1.15), move_speed * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		scale_tween.tween_property(self, "scale", Vector2(1.0, 1.0), move_speed * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 		tween.chain().tween_callback(func():
 			is_moving = false
-			z_index = 0
+			z_index = int(position.y)
 			queue_redraw()
 		)
 	else:
 		position = target
+		z_index = int(position.y)
 
 func promote_to_king() -> void:
 	is_king = true
@@ -199,58 +207,65 @@ func update_appearance() -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var piece_draw_size = tile_size * 0.82
+	var piece_draw_size = 58.0 # Pixel-perfect crisp size on 76x62 tiles
 	var half_s = piece_draw_size * 0.5
 
-	# Shadow
-	var shadow_offset = Vector2(0, 6) if is_moving else Vector2(0, 4)
-	draw_circle(shadow_offset, half_s * 0.95, Color(0, 0, 0, 0.35))
+	# Semi-orthogonal 3D Ground Shadow (compressed ellipse underneath)
+	var shadow_offset = Vector2(0, 8) if is_moving else Vector2(0, 4)
+	draw_ellipse(shadow_offset, half_s * 0.95, half_s * 0.65, Color(0, 0, 0, 0.38))
 
 	# Fire aura ring
 	if is_on_fire:
-		draw_circle(Vector2.ZERO, half_s * 1.2, Color(1.0, 0.6, 0.1, 0.4))
+		draw_ellipse(Vector2.ZERO, half_s * 1.2, half_s * 0.9, Color(1.0, 0.6, 0.1, 0.4))
 		draw_arc(Vector2.ZERO, half_s * 1.25, 0, TAU, 16, Color(1.0, 0.85, 0.2, 0.7), 2.5)
 
 	# Shield Energy Dome
 	if has_shield:
-		draw_circle(Vector2.ZERO, half_s * 1.25, Color(0.1, 0.85, 1.0, 0.35))
+		draw_ellipse(Vector2.ZERO, half_s * 1.25, half_s * 0.95, Color(0.1, 0.85, 1.0, 0.35))
 		draw_arc(Vector2.ZERO, half_s * 1.3, 0, TAU, 24, Color(0.4, 0.95, 1.0, 0.9), 3.0)
 
 	# Lightning Aura
 	if has_lightning:
 		draw_arc(Vector2.ZERO, half_s * 1.15, 0, TAU, 16, Color(0.2, 0.9, 1.0, 0.85), 2.5)
 
-	# Draw Precise Pixel Art Texture Sprite (Matching user reference)
+	# Draw Precise Pixel Art Texture Sprite (Sits upright in the 3/4 semi-orthogonal tile)
 	if piece_texture:
-		var rect = Rect2(-half_s, -half_s, piece_draw_size, piece_draw_size)
+		var rect = Rect2(-half_s, -half_s - 4, piece_draw_size, piece_draw_size)
 		draw_texture_rect(piece_texture, rect, false)
 	else:
-		# Fallback draw
 		draw_circle(Vector2.ZERO, half_s, Color(0.5, 0.2, 0.2) if player == Player.RED else Color(0.9, 0.8, 0.5))
 
-	# King Crown
+	# Pixel King Crown
 	if is_king:
 		var gold = Color(1.0, 0.84, 0.0)
 		var gold_border = Color(0.70, 0.55, 0.0)
 		var crown_pts = PackedVector2Array([
-			Vector2(-12, 4),
-			Vector2(-14, -8),
-			Vector2(-6, -3),
-			Vector2(0, -12),
-			Vector2(6, -3),
-			Vector2(14, -8),
-			Vector2(12, 4)
+			Vector2(-12, 0),
+			Vector2(-14, -12),
+			Vector2(-6, -7),
+			Vector2(0, -16),
+			Vector2(6, -7),
+			Vector2(14, -12),
+			Vector2(12, 0)
 		])
 		draw_colored_polygon(crown_pts, gold)
 		draw_polyline(crown_pts, gold_border, 2.0, true)
-		draw_rect(Rect2(-15, -9, 4, 4), Color.WHITE)
-		draw_rect(Rect2(-2, -13, 4, 4), Color.WHITE)
-		draw_rect(Rect2(11, -9, 4, 4), Color.WHITE)
+		draw_rect(Rect2(-15, -13, 4, 4), Color.WHITE)
+		draw_rect(Rect2(-2, -17, 4, 4), Color.WHITE)
+		draw_rect(Rect2(11, -13, 4, 4), Color.WHITE)
+
+func draw_ellipse(center: Vector2, rx: float, ry: float, col: Color) -> void:
+	var pts = PackedVector2Array()
+	var num_pts = 20
+	for i in range(num_pts):
+		var angle = (float(i) / num_pts) * TAU
+		pts.append(center + Vector2(cos(angle) * rx, sin(angle) * ry))
+	draw_colored_polygon(pts, col)
 
 
 # Motion Blur Trail
 class MotionGhost extends Node2D:
-	var radius: float = 30.0
+	var radius: float = 26.0
 	var color: Color = Color.WHITE
 	var current_alpha: float = 0.42
 
