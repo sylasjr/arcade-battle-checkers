@@ -1,0 +1,17 @@
+# Godot-specific ignores
+.godot/
+*.translation
+
+# Build & exported binaries
+export/
+*.apk
+*.aab
+*.dmg
+*.app/
+*.zip
+*.tpz
+*.keystore
+
+# OS-specific
+.DS_Store
+Thumbs.db

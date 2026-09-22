@@ -1,0 +1,276 @@
+class_name Piece
+extends Node2D
+
+enum Player { RED = 1, BLACK = 2 }
+
+@export var player: Player = Player.RED
+@export var is_king: bool = false
+@export var grid_pos: Vector2i = Vector2i.ZERO
+
+var tile_size: float = 80.0
+var target_position: Vector2 = Vector2.ZERO
+var is_moving: bool = false
+
+# Arcade Battle Buffs
+var has_shield: bool = false
+var has_lightning: bool = false
+
+# Streak & Fire state
+var is_on_fire: bool = false
+var flame_particles: CPUParticles2D = null
+var flame_timer: float = 0.0
+
+# Motion Ghost Trail system
+var ghost_spawn_timer: float = 0.0
+var move_speed: float = 0.26
+
+# Theme Colors
+var theme_data: Dictionary = {}
+
+func _ready() -> void:
+	update_appearance()
+
+func _process(delta: float) -> void:
+	if is_moving:
+		ghost_spawn_timer += delta
+		if ghost_spawn_timer >= 0.025:
+			ghost_spawn_timer = 0.0
+			spawn_balanced_ghost()
+
+	if is_on_fire:
+		flame_timer -= delta
+		if flame_timer <= 0.0:
+			extinguish_fire()
+
+func setup(p_player: Player, p_grid_pos: Vector2i, p_tile_size: float, p_theme: Dictionary = {}) -> void:
+	player = p_player
+	grid_pos = p_grid_pos
+	tile_size = p_tile_size
+	theme_data = p_theme
+	position = grid_to_world(grid_pos)
+	queue_redraw()
+
+func apply_theme(p_theme: Dictionary) -> void:
+	theme_data = p_theme
+	queue_redraw()
+
+func grid_to_world(coord: Vector2i) -> Vector2:
+	return Vector2(coord.x * tile_size + tile_size * 0.5, coord.y * tile_size + tile_size * 0.5)
+
+func give_shield() -> void:
+	has_shield = true
+	queue_redraw()
+	var tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2(1.22, 1.22), 0.15)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15)
+
+func break_shield() -> void:
+	has_shield = false
+	queue_redraw()
+	var tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.3, 0.7), 0.08)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.12)
+
+func give_lightning() -> void:
+	has_lightning = true
+	queue_redraw()
+
+func consume_lightning() -> void:
+	has_lightning = false
+	queue_redraw()
+
+func ignite_fire(duration: float = 2.0) -> void:
+	is_on_fire = true
+	flame_timer = duration
+
+	if flame_particles == null:
+		flame_particles = CPUParticles2D.new()
+		flame_particles.amount = 45
+		flame_particles.lifetime = 0.55
+		flame_particles.preprocess = 0.1
+		flame_particles.explosiveness = 0.05
+		flame_particles.direction = Vector2(0, -1)
+		flame_particles.spread = 45.0
+		flame_particles.gravity = Vector2(0, -60)
+		flame_particles.initial_velocity_min = 40.0
+		flame_particles.initial_velocity_max = 95.0
+		flame_particles.scale_amount_min = 4.0
+		flame_particles.scale_amount_max = 9.0
+		flame_particles.hue_variation_min = -0.08
+		flame_particles.hue_variation_max = 0.08
+
+		var grad = Gradient.new()
+		grad.colors = PackedColorArray([
+			Color(1.0, 1.0, 0.3, 1.0),
+			Color(1.0, 0.55, 0.0, 0.95),
+			Color(0.9, 0.15, 0.05, 0.7),
+			Color(0.2, 0.2, 0.2, 0.0)
+		])
+		grad.offsets = PackedFloat32Array([0.0, 0.25, 0.65, 1.0])
+		flame_particles.color_ramp = grad
+		flame_particles.z_index = 8
+		add_child(flame_particles)
+
+	flame_particles.emitting = true
+	queue_redraw()
+
+	var tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2(1.28, 1.28), 0.18)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15)
+
+func extinguish_fire() -> void:
+	is_on_fire = false
+	if flame_particles:
+		flame_particles.emitting = false
+		var t = create_tween()
+		t.tween_interval(0.6)
+		t.tween_callback(func():
+			if flame_particles:
+				flame_particles.queue_free()
+				flame_particles = null
+		)
+	queue_redraw()
+
+func spawn_balanced_ghost() -> void:
+	if not get_parent():
+		return
+	
+	var ghost = MotionGhost.new()
+	var main_col: Color
+	if is_on_fire:
+		main_col = Color(1.0, 0.5, 0.1)
+	elif has_lightning:
+		main_col = Color(0.2, 0.9, 1.0)
+	elif player == Player.RED:
+		main_col = theme_data.get("red_main", Color(0.95, 0.28, 0.24))
+	else:
+		main_col = theme_data.get("black_main", Color(0.24, 0.28, 0.36))
+	
+	ghost.setup(position, tile_size * 0.38, main_col)
+	get_parent().add_child(ghost)
+
+func move_to(new_grid_pos: Vector2i, animate: bool = true) -> void:
+	grid_pos = new_grid_pos
+	var target = grid_to_world(new_grid_pos)
+	if animate:
+		is_moving = true
+		ghost_spawn_timer = 0.0
+		z_index = 10
+
+		spawn_balanced_ghost()
+
+		var tween = create_tween().set_parallel(true)
+		tween.tween_property(self, "position", target, move_speed).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		
+		var scale_tween = create_tween().set_parallel(false)
+		scale_tween.tween_property(self, "scale", Vector2(1.14, 1.14), move_speed * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		scale_tween.tween_property(self, "scale", Vector2(1.0, 1.0), move_speed * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+		tween.chain().tween_callback(func():
+			is_moving = false
+			z_index = 0
+			queue_redraw()
+		)
+	else:
+		position = target
+
+func promote_to_king() -> void:
+	is_king = true
+	queue_redraw()
+	var tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2(1.25, 1.25), 0.15)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15)
+
+func update_appearance() -> void:
+	queue_redraw()
+
+func _draw() -> void:
+	var radius = tile_size * 0.4
+	var main_color: Color
+	var border_color: Color
+	var inner_color: Color
+
+	if is_on_fire:
+		main_color = Color(1.0, 0.32, 0.05)
+		border_color = Color(1.0, 0.85, 0.2)
+		inner_color = Color(1.0, 0.95, 0.6)
+	elif has_lightning:
+		main_color = Color(0.15, 0.75, 1.0)
+		border_color = Color(0.9, 0.95, 1.0)
+		inner_color = Color(0.8, 1.0, 1.0)
+	elif player == Player.RED:
+		main_color = theme_data.get("red_main", Color(0.92, 0.25, 0.22))
+		border_color = theme_data.get("red_border", Color(0.72, 0.15, 0.12))
+		inner_color = theme_data.get("red_inner", Color(1.0, 0.45, 0.42))
+	else:
+		main_color = theme_data.get("black_main", Color(0.18, 0.20, 0.25))
+		border_color = theme_data.get("black_border", Color(0.08, 0.09, 0.12))
+		inner_color = theme_data.get("black_inner", Color(0.32, 0.35, 0.42))
+
+	# Pixel-style Chunky Shadow
+	var shadow_offset = Vector2(0, 6) if is_moving else Vector2(0, 3)
+	draw_circle(shadow_offset, radius, Color(0, 0, 0, 0.35))
+
+	# Fire aura ring
+	if is_on_fire:
+		draw_circle(Vector2.ZERO, radius * 1.18, Color(1.0, 0.6, 0.1, 0.4))
+		draw_arc(Vector2.ZERO, radius * 1.25, 0, TAU, 16, Color(1.0, 0.85, 0.2, 0.7), 2.5)
+
+	# Shield Energy Dome
+	if has_shield:
+		draw_circle(Vector2.ZERO, radius * 1.25, Color(0.1, 0.85, 1.0, 0.35))
+		draw_arc(Vector2.ZERO, radius * 1.3, 0, TAU, 24, Color(0.4, 0.95, 1.0, 0.9), 3.0)
+
+	# Stepped Pixel-Style Checker Drawing
+	draw_circle(Vector2.ZERO, radius, border_color)
+	draw_circle(Vector2.ZERO, radius * 0.88, main_color)
+	draw_arc(Vector2.ZERO, radius * 0.62, 0, TAU, 16, border_color, 2.5)
+	draw_circle(Vector2.ZERO, radius * 0.38, inner_color)
+	draw_rect(Rect2(-radius * 0.45, -radius * 0.45, 5, 5), Color(1, 1, 1, 0.45))
+
+	# King Crown
+	if is_king:
+		var gold = Color(1.0, 0.84, 0.0)
+		var gold_border = Color(0.70, 0.55, 0.0)
+		var crown_pts = PackedVector2Array([
+			Vector2(-12, 6),
+			Vector2(-14, -6),
+			Vector2(-6, -1),
+			Vector2(0, -10),
+			Vector2(6, -1),
+			Vector2(14, -6),
+			Vector2(12, 6)
+		])
+		draw_colored_polygon(crown_pts, gold)
+		draw_polyline(crown_pts, gold_border, 2.0, true)
+		draw_rect(Rect2(-15, -7, 4, 4), Color.WHITE)
+		draw_rect(Rect2(-2, -11, 4, 4), Color.WHITE)
+		draw_rect(Rect2(11, -7, 4, 4), Color.WHITE)
+
+
+# Motion Blur Trail
+class MotionGhost extends Node2D:
+	var radius: float = 30.0
+	var color: Color = Color.WHITE
+	var current_alpha: float = 0.42
+
+	func setup(p_pos: Vector2, p_radius: float, p_color: Color) -> void:
+		position = p_pos
+		radius = p_radius
+		color = p_color
+		z_index = 4
+
+	func _ready() -> void:
+		var tween = create_tween().set_parallel(true)
+		tween.tween_property(self, "current_alpha", 0.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(self, "scale", Vector2(0.85, 0.85), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.chain().tween_callback(queue_free)
+
+	func _process(_delta: float) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		var fill_col = Color(color.r, color.g, color.b, current_alpha)
+		var rim_col = Color(1.0, 1.0, 1.0, current_alpha * 0.4)
+		draw_circle(Vector2.ZERO, radius, fill_col)
+		draw_arc(Vector2.ZERO, radius * 0.9, 0, TAU, 16, rim_col, 1.5)
