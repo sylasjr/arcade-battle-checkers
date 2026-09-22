@@ -212,16 +212,16 @@ func _draw() -> void:
 
 	# Semi-orthogonal 3D Ground Shadow (compressed ellipse underneath)
 	var shadow_offset = Vector2(0, 8) if is_moving else Vector2(0, 4)
-	draw_ellipse(shadow_offset, half_s * 0.95, half_s * 0.65, Color(0, 0, 0, 0.38))
+	_draw_custom_ellipse(shadow_offset, half_s * 0.95, half_s * 0.65, Color(0, 0, 0, 0.38))
 
 	# Fire aura ring
 	if is_on_fire:
-		draw_ellipse(Vector2.ZERO, half_s * 1.2, half_s * 0.9, Color(1.0, 0.6, 0.1, 0.4))
+		_draw_custom_ellipse(Vector2.ZERO, half_s * 1.2, half_s * 0.9, Color(1.0, 0.6, 0.1, 0.4))
 		draw_arc(Vector2.ZERO, half_s * 1.25, 0, TAU, 16, Color(1.0, 0.85, 0.2, 0.7), 2.5)
 
 	# Shield Energy Dome
 	if has_shield:
-		draw_ellipse(Vector2.ZERO, half_s * 1.25, half_s * 0.95, Color(0.1, 0.85, 1.0, 0.35))
+		_draw_custom_ellipse(Vector2.ZERO, half_s * 1.25, half_s * 0.95, Color(0.1, 0.85, 1.0, 0.35))
 		draw_arc(Vector2.ZERO, half_s * 1.3, 0, TAU, 24, Color(0.4, 0.95, 1.0, 0.9), 3.0)
 
 	# Lightning Aura
@@ -254,7 +254,7 @@ func _draw() -> void:
 		draw_rect(Rect2(-2, -17, 4, 4), Color.WHITE)
 		draw_rect(Rect2(11, -13, 4, 4), Color.WHITE)
 
-func draw_ellipse(center: Vector2, rx: float, ry: float, col: Color) -> void:
+func _draw_custom_ellipse(center: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts = PackedVector2Array()
 	var num_pts = 20
 	for i in range(num_pts):
