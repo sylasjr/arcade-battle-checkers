@@ -37,7 +37,7 @@ signal sfx_volume_changed(volume: float)
 var is_single_player: bool = false
 var is_arcade_mode: bool = true
 var current_diff: BotAI.Difficulty = BotAI.Difficulty.MEDIUM
-var diff_names = ["EASY", "MEDIUM", "HARD"]
+var diff_names = ["EASY", "MEDIUM", "HARD", "💀 NIGHTMARE"]
 
 func _ready() -> void:
 	win_dialog.visible = false
@@ -65,8 +65,7 @@ func set_mode_display(single_player: bool, arcade: bool, diff: BotAI.Difficulty)
 	else:
 		mode_label.text = "CLASSIC: VS BOT" if is_single_player else "CLASSIC: 2P"
 	
-	if is_single_player:
-		diff_btn.text = "AI: " + diff_names[current_diff]
+	_update_diff_button_style()
 
 func update_hero_ui(hero_name: String, hero_icon: String, ult_name: String, energy_val: float, is_ready: bool) -> void:
 	if not hero_box.visible:
@@ -83,10 +82,23 @@ func update_hero_ui(hero_name: String, hero_icon: String, ult_name: String, ener
 		ult_btn.modulate = Color(0.7, 0.7, 0.7)
 
 func _on_diff_pressed() -> void:
-	var next_val = (int(current_diff) + 1) % 3
+	var next_val = (int(current_diff) + 1) % 4
 	current_diff = BotAI.Difficulty.values()[next_val]
-	diff_btn.text = "AI: " + diff_names[current_diff]
+	_update_diff_button_style()
 	emit_signal("diff_changed_request", current_diff)
+
+func _update_diff_button_style() -> void:
+	if not is_single_player:
+		return
+	diff_btn.text = "AI: " + diff_names[current_diff]
+	if current_diff == BotAI.Difficulty.NIGHTMARE:
+		diff_btn.modulate = Color(1.0, 0.25, 0.25)
+	elif current_diff == BotAI.Difficulty.HARD:
+		diff_btn.modulate = Color(1.0, 0.65, 0.2)
+	elif current_diff == BotAI.Difficulty.MEDIUM:
+		diff_btn.modulate = Color(0.4, 0.8, 1.0)
+	else:
+		diff_btn.modulate = Color(0.6, 1.0, 0.6)
 
 func update_theme_label(theme_name: String) -> void:
 	if theme_btn:

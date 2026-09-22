@@ -2,13 +2,13 @@
 
 importer="mp3"
 type="AudioStreamMP3"
-uid="uid://cottagedoor001"
-path="res://.godot/imported/Tides_at_the_Cottage_Door.mp3-cottage001.mp3str"
+uid="uid://bn8y162etjm3y"
+path="res://.godot/imported/Tides_at_the_Cottage_Door.mp3-a0f25ce2d449a495f1a61c9c5c7c35d2.mp3str"
 
 [deps]
 
-source_file="res://audio/Tides_at_the_Cottage_Door.mp3"
-dest_files=["res://.godot/imported/Tides_at_the_Cottage_Door.mp3-cottage001.mp3str"]
+source_file="res://Audio/Tides_at_the_Cottage_Door.mp3"
+dest_files=["res://.godot/imported/Tides_at_the_Cottage_Door.mp3-a0f25ce2d449a495f1a61c9c5c7c35d2.mp3str"]
 
 [params]
 

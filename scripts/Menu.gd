@@ -21,7 +21,7 @@ signal sfx_volume_changed(volume: float)
 @onready var sfx_slider: HSlider = $VBoxContainer/AudioBox/SfxRow/SfxSlider
 
 var current_diff: BotAI.Difficulty = BotAI.Difficulty.MEDIUM
-var diff_names = ["EASY", "MEDIUM", "HARD"]
+var diff_names = ["EASY", "MEDIUM", "HARD", "💀 NIGHTMARE"]
 
 func _ready() -> void:
 	arcade_single_btn.pressed.connect(func(): emit_signal("play_arcade_selected", true, current_diff))
@@ -38,12 +38,20 @@ func _ready() -> void:
 	_update_diff_label()
 
 func _on_diff_pressed() -> void:
-	var next_val = (int(current_diff) + 1) % 3
+	var next_val = (int(current_diff) + 1) % 4
 	current_diff = BotAI.Difficulty.values()[next_val]
 	_update_diff_label()
 
 func _update_diff_label() -> void:
 	diff_btn.text = "AI Level: " + diff_names[current_diff]
+	if current_diff == BotAI.Difficulty.NIGHTMARE:
+		diff_btn.modulate = Color(1.0, 0.25, 0.25)
+	elif current_diff == BotAI.Difficulty.HARD:
+		diff_btn.modulate = Color(1.0, 0.65, 0.2)
+	elif current_diff == BotAI.Difficulty.MEDIUM:
+		diff_btn.modulate = Color(0.4, 0.8, 1.0)
+	else:
+		diff_btn.modulate = Color(0.6, 1.0, 0.6)
 
 func update_theme_label(theme_name: String) -> void:
 	if theme_btn:

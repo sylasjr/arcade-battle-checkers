@@ -444,13 +444,40 @@ func trigger_bot_turn() -> void:
 				if grid[pos].player == Piece.Player.RED:
 					enemies.append(grid[pos])
 			if enemies.size() > 0:
-				var victim = enemies.pick_random()
+				# Prioritize kings or advanced pieces on Hard/Nightmare
+				var victim: Piece = null
+				if bot_difficulty >= BotAI.Difficulty.HARD:
+					var kings = enemies.filter(func(p): return p.is_king)
+					victim = kings.pick_random() if kings.size() > 0 else enemies.pick_random()
+				else:
+					victim = enemies.pick_random()
+
 				hero_manager.consume_ult(bot_player)
 				grid.erase(victim.grid_pos)
 				emit_signal("piece_captured", to_global(victim.position), victim.player)
 				emit_signal("piece_ignited", to_global(victim.position))
 				victim.queue_free()
 				emit_counts()
+				switch_turn()
+				return
+		elif bot_h == HeroManager.HeroClass.VOID_ROGUE and bot_difficulty >= BotAI.Difficulty.HARD:
+			var enemies: Array[Piece] = []
+			var friendlies: Array[Piece] = []
+			for pos in grid:
+				if grid[pos].player == Piece.Player.RED: enemies.append(grid[pos])
+				elif grid[pos].player == bot_player: friendlies.append(grid[pos])
+			if enemies.size() > 0 and friendlies.size() > 0:
+				var enemy_king = enemies.filter(func(p): return p.is_king)
+				var target_e = enemy_king.pick_random() if enemy_king.size() > 0 else enemies.pick_random()
+				var my_p = friendlies.pick_random()
+				hero_manager.consume_ult(bot_player)
+				var my_pos = my_p.grid_pos
+				var e_pos = target_e.grid_pos
+				grid[e_pos] = my_p
+				grid[my_pos] = target_e
+				my_p.move_to(e_pos, true)
+				target_e.move_to(my_pos, true)
+				emit_signal("powerup_triggered", PowerUpManager.PowerType.PORTAL, to_global(my_p.position))
 				switch_turn()
 				return
 
