@@ -5,8 +5,8 @@ var music_player: AudioStreamPlayer
 var music_stream: AudioStream = null
 var is_music_muted: bool = false
 var is_sfx_muted: bool = false
-var music_volume: float = 0.28 # Halved from 0.55
-var sfx_volume: float = 0.28   # Halved from 0.55
+var music_volume: float = 0.28
+var sfx_volume: float = 0.14   # 50% lower than music volume (0.28 / 2 = 0.14)
 
 # SFX Streams
 var sfx_select: AudioStreamWAV
@@ -65,7 +65,6 @@ func _apply_music_volume() -> void:
 	if is_music_muted or music_volume <= 0.001:
 		music_player.volume_db = -80.0
 	else:
-		# Convert linear 0.0-1.0 to dB scale with comfortable soft master mix
 		music_player.volume_db = linear_to_db(music_volume) - 6.0
 
 func toggle_music(enabled: bool) -> void:
@@ -126,7 +125,8 @@ func _play_sfx(stream: AudioStreamWAV, volume_db: float = 0.0, pitch_scale: floa
 		return
 	var p = AudioStreamPlayer.new()
 	p.stream = stream
-	var sfx_vol_db = linear_to_db(sfx_volume)
+	# Applies sfx slider volume with 50% gentle scaling
+	var sfx_vol_db = linear_to_db(sfx_volume) - 6.0
 	p.volume_db = volume_db + sfx_vol_db
 	p.pitch_scale = pitch_scale
 	add_child(p)
