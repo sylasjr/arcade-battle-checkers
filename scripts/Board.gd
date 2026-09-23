@@ -14,6 +14,7 @@ signal piece_ignited(world_pos: Vector2)
 signal combo_scored(streak_count: int)
 signal powerup_triggered(power_type: PowerUpManager.PowerType, world_pos: Vector2)
 signal energy_gained(player: Piece.Player, amount: float)
+signal ultimate_targeting_changed(is_targeting: bool)
 
 const BOARD_SIZE = 8
 # Semi-orthogonal 3/4 foreshortened tile dimensions
@@ -411,6 +412,7 @@ func activate_ultimate_request() -> void:
 	else:
 		is_targeting_ult = true
 		targeting_hero_class = h_class
+		emit_signal("ultimate_targeting_changed", true)
 		queue_redraw()
 
 func _cast_titan_ult() -> void:
@@ -427,6 +429,7 @@ func _cast_titan_ult() -> void:
 
 func _execute_targeted_ult(clicked_pos: Vector2i) -> void:
 	is_targeting_ult = false
+	emit_signal("ultimate_targeting_changed", false)
 	
 	if not grid.has(clicked_pos):
 		queue_redraw()

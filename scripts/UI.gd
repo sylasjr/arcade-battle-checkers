@@ -19,10 +19,13 @@ signal sfx_volume_changed(volume: float)
 @onready var menu_button: Button = $Panel/VBoxContainer/MenuButton
 
 # Hero & Ultimate UI in Sidebar
-@onready var hero_box: VBoxContainer = $Panel/VBoxContainer/HeroBox
-@onready var hero_label: Label = $Panel/VBoxContainer/HeroBox/HeroLabel
-@onready var ult_bar: ProgressBar = $Panel/VBoxContainer/HeroBox/UltProgressBar
-@onready var ult_btn: Button = $Panel/VBoxContainer/HeroBox/UltButton
+@onready var hero_card: PanelContainer = $Panel/VBoxContainer/HeroCard
+@onready var hero_label: Label = $Panel/VBoxContainer/HeroCard/HeroBox/HeroHeader/HeroLabel
+@onready var hero_desc: Label = $Panel/VBoxContainer/HeroCard/HeroBox/HeroDesc
+@onready var energy_label: Label = $Panel/VBoxContainer/HeroCard/HeroBox/EnergyContainer/EnergyLabel
+@onready var ult_bar: ProgressBar = $Panel/VBoxContainer/HeroCard/HeroBox/EnergyContainer/UltProgressBar
+@onready var ult_btn: Button = $Panel/VBoxContainer/HeroCard/HeroBox/UltButton
+@onready var target_hint: Label = $Panel/VBoxContainer/HeroCard/HeroBox/TargetHint
 
 @onready var music_check: CheckBox = $Panel/VBoxContainer/MusicBox/MusicCheck
 @onready var music_slider: HSlider = $Panel/VBoxContainer/MusicBox/MusicSlider
@@ -38,6 +41,7 @@ var is_single_player: bool = false
 var is_arcade_mode: bool = true
 var current_diff: BotAI.Difficulty = BotAI.Difficulty.MEDIUM
 var diff_names = ["EASY", "MEDIUM", "HARD", "💀 NIGHTMARE"]
+var ready_pulse_tween: Tween = null
 
 func _ready() -> void:
 	win_dialog.visible = false
@@ -58,7 +62,7 @@ func set_mode_display(single_player: bool, arcade: bool, diff: BotAI.Difficulty)
 	is_arcade_mode = arcade
 	current_diff = diff
 	diff_btn.visible = single_player
-	hero_box.visible = is_arcade_mode
+	hero_card.visible = is_arcade_mode
 	
 	if is_arcade_mode:
 		mode_label.text = "ARCADE: VS BOT" if is_single_player else "ARCADE: 2P"
@@ -67,19 +71,35 @@ func set_mode_display(single_player: bool, arcade: bool, diff: BotAI.Difficulty)
 	
 	_update_diff_button_style()
 
-func update_hero_ui(hero_name: String, hero_icon: String, ult_name: String, energy_val: float, is_ready: bool) -> void:
-	if not hero_box.visible:
+func update_hero_ui(hero_name: String, hero_icon: String, ult_name: String, desc_text: String, energy_val: float, is_ready: bool, is_targeting: bool = false) -> void:
+	if not hero_card.visible:
 		return
 	hero_label.text = "%s %s" % [hero_icon, hero_name]
+	hero_desc.text = desc_text
+	energy_label.text = "⚡ ULTIMATE: %d%%" % int(energy_val)
 	ult_bar.value = energy_val
-	if is_ready:
+	target_hint.visible = is_targeting
+
+	if is_targeting:
+		ult_btn.disabled = false
+		ult_btn.text = "🎯 TARGETING..."
+		ult_btn.modulate = Color(1.0, 0.2, 0.2)
+	elif is_ready:
 		ult_btn.disabled = false
 		ult_btn.text = "⚡ %s (READY!)" % ult_name
-		ult_btn.modulate = Color(1.0, 1.0, 0.2)
+		ult_btn.modulate = Color(1.0, 0.95, 0.1)
+		
+		if ready_pulse_tween == null or not ready_pulse_tween.is_valid():
+			ready_pulse_tween = create_tween().set_loops()
+			ready_pulse_tween.tween_property(ult_btn, "scale", Vector2(1.04, 1.04), 0.4).set_trans(Tween.TRANS_SINE)
+			ready_pulse_tween.tween_property(ult_btn, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_SINE)
 	else:
+		if ready_pulse_tween != null and ready_pulse_tween.is_valid():
+			ready_pulse_tween.kill()
+		ult_btn.scale = Vector2.ONE
 		ult_btn.disabled = true
 		ult_btn.text = "🔒 %s (%d%%)" % [ult_name, int(energy_val)]
-		ult_btn.modulate = Color(0.7, 0.7, 0.7)
+		ult_btn.modulate = Color(0.65, 0.65, 0.7)
 
 func _on_diff_pressed() -> void:
 	var next_val = (int(current_diff) + 1) % 4

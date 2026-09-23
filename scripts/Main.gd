@@ -63,6 +63,7 @@ func _ready() -> void:
 	board.powerup_triggered.connect(_on_powerup_triggered)
 	board.energy_gained.connect(_on_energy_gained)
 	board.king_promoted.connect(_on_king_promoted)
+	board.ultimate_targeting_changed.connect(func(_targeting): _update_hero_hud())
 	board.game_over.connect(func(_winner): audio_manager.play_win())
 
 func _on_theme_changed(t_data: Dictionary) -> void:
@@ -132,7 +133,7 @@ func _update_hero_hud() -> void:
 	var h_data = hero_manager.get_hero_data(board.current_player)
 	var energy = hero_manager.get_energy(board.current_player)
 	var is_ready = hero_manager.is_ult_ready(board.current_player)
-	ui.update_hero_ui(h_data.name, h_data.icon, h_data.ult_name, energy, is_ready)
+	ui.update_hero_ui(h_data.name, h_data.icon, h_data.ult_name, h_data.desc, energy, is_ready, board.is_targeting_ult)
 
 func _on_diff_changed(new_diff: BotAI.Difficulty) -> void:
 	current_bot_diff = new_diff

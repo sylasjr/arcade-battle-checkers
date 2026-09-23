@@ -70,30 +70,68 @@ theme_override_font_sizes/font_size = 10
 text = "R: 12 | B: 12"
 horizontal_alignment = 1
 
-[node name="HeroBox" type="VBoxContainer" parent="Panel/VBoxContainer"]
+[node name="HeroCard" type="PanelContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_styles/panel = null
 
-[node name="HeroLabel" type="Label" parent="Panel/VBoxContainer/HeroBox"]
+[node name="HeroBox" type="VBoxContainer" parent="Panel/VBoxContainer/HeroCard"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.8, 0.3, 1)
+theme_override_constants/separation = 7
+
+[node name="HeroHeader" type="HBoxContainer" parent="Panel/VBoxContainer/HeroCard/HeroBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="HeroLabel" type="Label" parent="Panel/VBoxContainer/HeroCard/HeroBox/HeroHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 9
 text = "🔥 Pyromancer"
 horizontal_alignment = 1
 
-[node name="UltProgressBar" type="ProgressBar" parent="Panel/VBoxContainer/HeroBox"]
-custom_minimum_size = Vector2(0, 14)
+[node name="HeroDesc" type="Label" parent="Panel/VBoxContainer/HeroCard/HeroBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.72, 0.82, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 7
+text = "Obliterates 1 enemy checker!"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EnergyContainer" type="VBoxContainer" parent="Panel/VBoxContainer/HeroCard/HeroBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="EnergyLabel" type="Label" parent="Panel/VBoxContainer/HeroCard/HeroBox/EnergyContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 7
+text = "⚡ ULTIMATE CHARGE: 25%"
+horizontal_alignment = 1
+
+[node name="UltProgressBar" type="ProgressBar" parent="Panel/VBoxContainer/HeroCard/HeroBox/EnergyContainer"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 value = 25.0
 show_percentage = false
 
-[node name="UltButton" type="Button" parent="Panel/VBoxContainer/HeroBox"]
-custom_minimum_size = Vector2(0, 34)
+[node name="UltButton" type="Button" parent="Panel/VBoxContainer/HeroCard/HeroBox"]
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 8
+theme_override_font_sizes/font_size = 9
 text = "🔒 METEOR (25%)"
+
+[node name="TargetHint" type="Label" parent="Panel/VBoxContainer/HeroCard/HeroBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 7
+text = "🎯 CLICK AN ENEMY PIECE!"
+horizontal_alignment = 1
 
 [node name="HSeparator2" type="HSeparator" parent="Panel/VBoxContainer"]
 layout_mode = 2
