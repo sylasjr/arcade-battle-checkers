@@ -57,7 +57,7 @@ func update_theme_label(theme_name: String) -> void:
 	if theme_btn:
 		theme_btn.text = "Theme: " + theme_name
 
-func set_audio_states(music_on: bool, sfx_on: bool, music_vol: float = 0.55, sfx_vol: float = 0.55) -> void:
+func set_audio_states(music_on: bool, sfx_on: bool, music_vol: float = 0.28, sfx_vol: float = 0.28) -> void:
 	if music_check:
 		music_check.button_pressed = music_on
 	if sfx_check:

@@ -137,7 +137,7 @@ func _on_music_toggled(button_pressed: bool) -> void:
 func _on_sfx_toggled(button_pressed: bool) -> void:
 	emit_signal("sfx_toggled", button_pressed)
 
-func sync_audio_ui(music_on: bool, sfx_on: bool, music_vol: float = 0.55, sfx_vol: float = 0.55) -> void:
+func sync_audio_ui(music_on: bool, sfx_on: bool, music_vol: float = 0.28, sfx_vol: float = 0.28) -> void:
 	if music_check:
 		music_check.button_pressed = music_on
 	if sfx_check:
