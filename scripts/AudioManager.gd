@@ -5,8 +5,8 @@ var music_player: AudioStreamPlayer
 var music_stream: AudioStream = null
 var is_music_muted: bool = false
 var is_sfx_muted: bool = false
-var music_volume: float = 0.8 # Range 0.0 to 1.0
-var sfx_volume: float = 0.8   # Range 0.0 to 1.0
+var music_volume: float = 0.55 # Reduced by 30% from 0.8 default
+var sfx_volume: float = 0.55   # Reduced by 30% from 0.8 default
 
 # SFX Streams
 var sfx_select: AudioStreamWAV
