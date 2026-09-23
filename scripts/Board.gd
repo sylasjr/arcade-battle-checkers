@@ -49,7 +49,15 @@ var turn_counter: int = 0
 var hovered_tile: Vector2i = Vector2i(-1, -1)
 var theme_data: Dictionary = {}
 
+var tooltip_layer: Node2D = null
+
 func _ready() -> void:
+	tooltip_layer = Node2D.new()
+	tooltip_layer.name = "TooltipLayer"
+	tooltip_layer.z_as_relative = false
+	tooltip_layer.z_index = 2000 # Always renders above all 2.5D Y-sorted pieces
+	add_child(tooltip_layer)
+	tooltip_layer.draw.connect(_on_tooltip_layer_draw)
 	start_new_game()
 
 func apply_theme(p_theme: Dictionary) -> void:
@@ -114,6 +122,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mouse_tile != hovered_tile:
 			hovered_tile = mouse_tile
 			queue_redraw()
+			if tooltip_layer:
+				tooltip_layer.queue_redraw()
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if bot_enabled and current_player == bot_player:
@@ -642,8 +652,8 @@ func _draw() -> void:
 			draw_circle(center, 12, valid_move_dot)
 			draw_arc(center, 16, 0, TAU, 16, Color(0.2, 0.9, 0.4), 2.0)
 
-	# 8. Interactive Hover Tooltip (Properties & Buffs)
-	if is_in_bounds(hovered_tile):
+func _on_tooltip_layer_draw() -> void:
+	if is_in_bounds(hovered_tile) and tooltip_layer:
 		_draw_hover_tooltip(hovered_tile)
 
 func _draw_hover_tooltip(tile: Vector2i) -> void:
@@ -695,12 +705,12 @@ func _draw_hover_tooltip(tile: Vector2i) -> void:
 	if title == "":
 		return
 
-	# Draw Floating Pixel Tooltip Card
+	# Draw Floating Pixel Tooltip Card on tooltip_layer (z_index = 2000)
 	var anchor = Vector2(tile.x * TILE_W + TILE_W * 0.5, tile.y * TILE_H - 12.0)
 	
 	# Clamp anchor so tooltip stays nicely inside viewport
-	var card_w = 230.0
-	var card_h = 48.0 if desc.count("\n") > 0 else 38.0
+	var card_w = 240.0
+	var card_h = 52.0 if desc.count("\n") > 0 else 40.0
 	var card_x = clampf(anchor.x - card_w * 0.5, 8.0, BOARD_SIZE * TILE_W - card_w - 8.0)
 	var card_y = anchor.y - card_h - 10.0
 	if card_y < -4.0:
@@ -709,17 +719,17 @@ func _draw_hover_tooltip(tile: Vector2i) -> void:
 	var card_rect = Rect2(card_x, card_y, card_w, card_h)
 
 	# Card Drop Shadow & Pixel Bevel Border
-	draw_rect(Rect2(card_x + 3, card_y + 3, card_w, card_h), Color(0, 0, 0, 0.45))
-	draw_rect(card_rect, Color(0.08, 0.09, 0.14, 0.96))
-	draw_rect(card_rect, badge_color, false, 1.5)
+	tooltip_layer.draw_rect(Rect2(card_x + 3, card_y + 3, card_w, card_h), Color(0, 0, 0, 0.55))
+	tooltip_layer.draw_rect(card_rect, Color(0.06, 0.07, 0.12, 0.97))
+	tooltip_layer.draw_rect(card_rect, badge_color, false, 1.5)
 
 	# Header Title
 	var default_font = ThemeDB.fallback_font
-	draw_string(default_font, Vector2(card_x + 10, card_y + 16), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, badge_color)
+	tooltip_layer.draw_string(default_font, Vector2(card_x + 10, card_y + 18), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, badge_color)
 
 	# Description Text
 	var lines = desc.split("\n")
-	var line_y = card_y + 30
+	var line_y = card_y + 33
 	for l in lines:
-		draw_string(default_font, Vector2(card_x + 10, line_y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.9, 0.92, 0.95))
-		line_y += 13
+		tooltip_layer.draw_string(default_font, Vector2(card_x + 10, line_y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.92, 0.94, 0.97))
+		line_y += 14
