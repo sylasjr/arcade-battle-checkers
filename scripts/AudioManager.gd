@@ -119,7 +119,7 @@ func play_king() -> void:
 
 func play_win() -> void:
 	if not is_sfx_muted and sfx_win:
-		_play_sfx(sfx_win, 3.0)
+		_play_sfx(sfx_win, -6.0)
 
 func _play_sfx(stream: AudioStreamWAV, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 	if is_sfx_muted or sfx_volume <= 0.001:
