@@ -274,7 +274,11 @@ func execute_move(piece: Piece, move: Dictionary) -> void:
 				piece.ignite_fire(2.0)
 				emit_signal("piece_ignited", to_global(piece.position))
 
+	var picked_lightning = false
 	if is_arcade_mode and powerup_manager.active_powers.has(new_pos):
+		var p_type = powerup_manager.get_power(new_pos).type
+		if p_type == PowerUpManager.PowerType.LIGHTNING:
+			picked_lightning = true
 		_handle_powerup_landing(piece, new_pos)
 
 	var promoted = false
@@ -290,6 +294,16 @@ func execute_move(piece: Piece, move: Dictionary) -> void:
 			selected_piece = piece
 			valid_moves = next_jumps
 			is_multi_jumping = true
+			queue_redraw()
+			return
+
+	# Instant Lightning Extra Move!
+	if picked_lightning:
+		var extra_moves = get_piece_moves(piece)
+		if extra_moves.size() > 0:
+			selected_piece = piece
+			valid_moves = extra_moves
+			is_multi_jumping = true # Keep player turn active for the extra dash!
 			queue_redraw()
 			return
 
