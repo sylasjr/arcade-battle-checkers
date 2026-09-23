@@ -450,13 +450,24 @@ func _execute_targeted_ult(clicked_pos: Vector2i) -> void:
 
 	elif targeting_hero_class == HeroManager.HeroClass.VOID_ROGUE:
 		if target_p.player == opp_player:
-			var friendly_pieces: Array[Piece] = []
+			var friendly_candidates: Array[Piece] = []
+			var my_king_row = 0 if current_player == Piece.Player.RED else BOARD_SIZE - 1
+			var opp_king_row = BOARD_SIZE - 1 if opp_player == Piece.Player.BLACK else 0
+
 			for pos in grid:
-				if grid[pos].player == current_player:
-					friendly_pieces.append(grid[pos])
-			if friendly_pieces.size() > 0:
+				var p: Piece = grid[pos]
+				if p.player == current_player:
+					# Rule: Cannot swap non-king into king position (opponent back rank)
+					if clicked_pos.y == my_king_row and not p.is_king:
+						continue
+					# Also enemy non-king cannot be swapped to their own king position
+					if p.grid_pos.y == opp_king_row and not target_p.is_king:
+						continue
+					friendly_candidates.append(p)
+
+			if friendly_candidates.size() > 0:
 				hero_manager.consume_ult(current_player)
-				var my_p = friendly_pieces.pick_random()
+				var my_p = friendly_candidates.pick_random()
 				var my_old_pos = my_p.grid_pos
 				grid[clicked_pos] = my_p
 				grid[my_old_pos] = target_p
@@ -506,19 +517,32 @@ func trigger_bot_turn() -> void:
 				if grid[pos].player == Piece.Player.RED: enemies.append(grid[pos])
 				elif grid[pos].player == bot_player: friendlies.append(grid[pos])
 			if enemies.size() > 0 and friendlies.size() > 0:
-				var enemy_king = enemies.filter(func(p): return p.is_king)
-				var target_e = enemy_king.pick_random() if enemy_king.size() > 0 else enemies.pick_random()
-				var my_p = friendlies.pick_random()
-				hero_manager.consume_ult(bot_player)
-				var my_pos = my_p.grid_pos
-				var e_pos = target_e.grid_pos
-				grid[e_pos] = my_p
-				grid[my_pos] = target_e
-				my_p.move_to(e_pos, true)
-				target_e.move_to(my_pos, true)
-				emit_signal("powerup_triggered", PowerUpManager.PowerType.PORTAL, to_global(my_p.position))
-				switch_turn()
-				return
+				var bot_king_row = BOARD_SIZE - 1 if bot_player == Piece.Player.BLACK else 0
+				var red_king_row = 0
+				var valid_pairs: Array[Dictionary] = []
+				for f in friendlies:
+					for e in enemies:
+						if e.grid_pos.y == bot_king_row and not f.is_king:
+							continue
+						if f.grid_pos.y == red_king_row and not e.is_king:
+							continue
+						valid_pairs.append({"my": f, "target": e})
+
+				if valid_pairs.size() > 0:
+					valid_pairs.shuffle()
+					var chosen = valid_pairs[0]
+					var my_p = chosen["my"]
+					var target_e = chosen["target"]
+					hero_manager.consume_ult(bot_player)
+					var my_pos = my_p.grid_pos
+					var e_pos = target_e.grid_pos
+					grid[e_pos] = my_p
+					grid[my_pos] = target_e
+					my_p.move_to(e_pos, true)
+					target_e.move_to(my_pos, true)
+					emit_signal("powerup_triggered", PowerUpManager.PowerType.PORTAL, to_global(my_p.position))
+					switch_turn()
+					return
 
 	var all_bot_moves: Array[Dictionary] = []
 	for pos in grid:
@@ -666,10 +690,42 @@ func _draw() -> void:
 
 	# 6. Targeting Ultimate Reticle
 	if is_targeting_ult:
-		draw_rect(Rect2(0, 0, total_w, total_h), Color(1.0, 0.1, 0.1, 0.14))
+		var tint_col = Color(0.6, 0.15, 0.9, 0.15) if targeting_hero_class == HeroManager.HeroClass.VOID_ROGUE else Color(1.0, 0.1, 0.1, 0.14)
+		draw_rect(Rect2(0, 0, total_w, total_h), tint_col)
 		if is_in_bounds(hovered_tile):
 			var reticle_rect = Rect2(hovered_tile.x * TILE_W, hovered_tile.y * TILE_H, TILE_W, TILE_H)
-			draw_rect(reticle_rect, Color(1.0, 0.2, 0.2, 0.55))
+			var opp_player = Piece.Player.BLACK if current_player == Piece.Player.RED else Piece.Player.RED
+			var is_enemy = grid.has(hovered_tile) and grid[hovered_tile].player == opp_player
+
+			if is_enemy:
+				if targeting_hero_class == HeroManager.HeroClass.VOID_ROGUE:
+					var target_p: Piece = grid[hovered_tile]
+					var my_king_row = 0 if current_player == Piece.Player.RED else BOARD_SIZE - 1
+					var opp_king_row = BOARD_SIZE - 1 if opp_player == Piece.Player.BLACK else 0
+					var has_valid_friendly = false
+					for pos in grid:
+						var p: Piece = grid[pos]
+						if p.player == current_player:
+							if hovered_tile.y == my_king_row and not p.is_king:
+								continue
+							if p.grid_pos.y == opp_king_row and not target_p.is_king:
+								continue
+							has_valid_friendly = true
+							break
+
+					if has_valid_friendly:
+						draw_rect(reticle_rect, Color(0.8, 0.3, 1.0, 0.55))
+						draw_arc(Vector2(hovered_tile.x * TILE_W + TILE_W * 0.5, hovered_tile.y * TILE_H + TILE_H * 0.5), 22, 0, TAU, 16, Color(0.9, 0.4, 1.0), 2.5)
+					else:
+						# Cannot swap into king position without king
+						draw_rect(reticle_rect, Color(1.0, 0.15, 0.15, 0.45))
+						draw_line(Vector2(reticle_rect.position.x + 8, reticle_rect.position.y + 8), Vector2(reticle_rect.end.x - 8, reticle_rect.end.y - 8), Color(1.0, 0.2, 0.2, 0.9), 3.0)
+						draw_line(Vector2(reticle_rect.end.x - 8, reticle_rect.position.y + 8), Vector2(reticle_rect.position.x + 8, reticle_rect.end.y - 8), Color(1.0, 0.2, 0.2, 0.9), 3.0)
+				else:
+					draw_rect(reticle_rect, Color(1.0, 0.2, 0.2, 0.55))
+					draw_arc(Vector2(hovered_tile.x * TILE_W + TILE_W * 0.5, hovered_tile.y * TILE_H + TILE_H * 0.5), 22, 0, TAU, 16, Color(1.0, 0.3, 0.3), 2.5)
+			else:
+				draw_rect(reticle_rect, Color(1.0, 1.0, 1.0, 0.18))
 
 	# 7. Valid Move Highlights
 	for move in valid_moves:
@@ -690,8 +746,30 @@ func _draw_hover_tooltip(tile: Vector2i) -> void:
 	var desc = ""
 	var badge_color = Color.WHITE
 
+	# Check for invalid Shadow Swap warning tooltip
+	if is_targeting_ult and targeting_hero_class == HeroManager.HeroClass.VOID_ROGUE and grid.has(tile):
+		var target_p: Piece = grid[tile]
+		var opp_player = Piece.Player.BLACK if current_player == Piece.Player.RED else Piece.Player.RED
+		if target_p.player == opp_player:
+			var my_king_row = 0 if current_player == Piece.Player.RED else BOARD_SIZE - 1
+			var opp_king_row = BOARD_SIZE - 1 if opp_player == Piece.Player.BLACK else 0
+			var has_valid_friendly = false
+			for pos in grid:
+				var p: Piece = grid[pos]
+				if p.player == current_player:
+					if tile.y == my_king_row and not p.is_king:
+						continue
+					if p.grid_pos.y == opp_king_row and not target_p.is_king:
+						continue
+					has_valid_friendly = true
+					break
+			if not has_valid_friendly:
+				title = "🚫 CANNOT SWAP"
+				desc = "Non-kings cannot swap\ninto the king position!"
+				badge_color = Color(1.0, 0.3, 0.3)
+
 	# Check for Power-Up on this tile
-	if is_arcade_mode and powerup_manager.active_powers.has(tile):
+	if title == "" and is_arcade_mode and powerup_manager.active_powers.has(tile):
 		var p_type = powerup_manager.active_powers[tile].type
 		if p_type == PowerUpManager.PowerType.BOMB:
 			title = "💣 BOMB TILE"

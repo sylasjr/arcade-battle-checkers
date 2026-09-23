@@ -76,23 +76,35 @@ func update_hero_ui(hero_name: String, hero_icon: String, ult_name: String, desc
 		return
 	hero_label.text = "%s %s" % [hero_icon, hero_name]
 	hero_desc.text = desc_text
-	energy_label.text = "⚡ ULTIMATE: %d%%" % int(energy_val)
 	ult_bar.value = energy_val
 	target_hint.visible = is_targeting
 
+	ult_btn.pivot_offset = ult_btn.size * 0.5
+
 	if is_targeting:
+		if ready_pulse_tween != null and ready_pulse_tween.is_valid():
+			ready_pulse_tween.kill()
 		ult_btn.disabled = false
-		ult_btn.text = "🎯 TARGETING..."
-		ult_btn.modulate = Color(1.0, 0.2, 0.2)
+		ult_btn.scale = Vector2.ONE
+		ult_btn.text = "🎯 SELECT ENEMY TO CAST"
+		ult_btn.modulate = Color(1.0, 0.3, 0.3)
+		energy_label.text = "🎯 SELECT ENEMY TARGET"
+		energy_label.modulate = Color(1.0, 0.3, 0.3)
 	elif is_ready:
 		ult_btn.disabled = false
-		ult_btn.text = "⚡ %s (READY!)" % ult_name
-		ult_btn.modulate = Color(1.0, 0.95, 0.1)
+		ult_btn.text = "⚡ CAST: %s ⚡" % ult_name
+		energy_label.text = "✨ ULTIMATE READY! (100%) ✨"
 		
 		if ready_pulse_tween == null or not ready_pulse_tween.is_valid():
 			ready_pulse_tween = create_tween().set_loops()
-			ready_pulse_tween.tween_property(ult_btn, "scale", Vector2(1.04, 1.04), 0.4).set_trans(Tween.TRANS_SINE)
-			ready_pulse_tween.tween_property(ult_btn, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_SINE)
+			# Vibrant multi-color & scale pulse between Electric Cyan and Radiant Gold
+			ready_pulse_tween.tween_property(ult_btn, "scale", Vector2(1.06, 1.06), 0.45).set_trans(Tween.TRANS_SINE)
+			ready_pulse_tween.parallel().tween_property(ult_btn, "modulate", Color(0.2, 1.0, 0.85), 0.45).set_trans(Tween.TRANS_SINE)
+			ready_pulse_tween.parallel().tween_property(energy_label, "modulate", Color(0.2, 1.0, 0.85), 0.45).set_trans(Tween.TRANS_SINE)
+			
+			ready_pulse_tween.tween_property(ult_btn, "scale", Vector2(1.0, 1.0), 0.45).set_trans(Tween.TRANS_SINE)
+			ready_pulse_tween.parallel().tween_property(ult_btn, "modulate", Color(1.0, 0.88, 0.15), 0.45).set_trans(Tween.TRANS_SINE)
+			ready_pulse_tween.parallel().tween_property(energy_label, "modulate", Color(1.0, 0.88, 0.15), 0.45).set_trans(Tween.TRANS_SINE)
 	else:
 		if ready_pulse_tween != null and ready_pulse_tween.is_valid():
 			ready_pulse_tween.kill()
@@ -100,6 +112,8 @@ func update_hero_ui(hero_name: String, hero_icon: String, ult_name: String, desc
 		ult_btn.disabled = true
 		ult_btn.text = "🔒 %s (%d%%)" % [ult_name, int(energy_val)]
 		ult_btn.modulate = Color(0.65, 0.65, 0.7)
+		energy_label.text = "⚡ ULTIMATE: %d%%" % int(energy_val)
+		energy_label.modulate = Color(0.4, 0.85, 1.0)
 
 func _on_diff_pressed() -> void:
 	var next_val = (int(current_diff) + 1) % 4
