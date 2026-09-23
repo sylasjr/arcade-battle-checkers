@@ -641,3 +641,85 @@ func _draw() -> void:
 		else:
 			draw_circle(center, 12, valid_move_dot)
 			draw_arc(center, 16, 0, TAU, 16, Color(0.2, 0.9, 0.4), 2.0)
+
+	# 8. Interactive Hover Tooltip (Properties & Buffs)
+	if is_in_bounds(hovered_tile):
+		_draw_hover_tooltip(hovered_tile)
+
+func _draw_hover_tooltip(tile: Vector2i) -> void:
+	var title = ""
+	var desc = ""
+	var badge_color = Color.WHITE
+
+	# Check for Power-Up on this tile
+	if is_arcade_mode and powerup_manager.active_powers.has(tile):
+		var p_type = powerup_manager.active_powers[tile].type
+		if p_type == PowerUpManager.PowerType.BOMB:
+			title = "💣 BOMB TILE"
+			desc = "Triggers explosion on capture,\nclearing nearby enemies."
+			badge_color = Color(1.0, 0.4, 0.2)
+		elif p_type == PowerUpManager.PowerType.PORTAL:
+			title = "🌀 WARP PORTAL"
+			desc = "Teleports moving piece to\na random safe tactical tile."
+			badge_color = Color(0.85, 0.4, 1.0)
+		elif p_type == PowerUpManager.PowerType.SHIELD:
+			title = "🛡️ ENERGY SHIELD"
+			desc = "Absorbs 1 jump capture.\nProtects piece from dying."
+			badge_color = Color(0.25, 0.9, 1.0)
+		else:
+			title = "⚡ LIGHTNING DASH"
+			desc = "Grants 1 instant extra move\nupon landing."
+			badge_color = Color(1.0, 0.9, 0.2)
+
+	# Check for Piece on this tile with special properties
+	elif grid.has(tile):
+		var p: Piece = grid[tile]
+		var props: Array[String] = []
+
+		if p.is_king:
+			props.append("👑 KING (Moves backward & forward)")
+		if p.has_shield:
+			props.append("🛡️ SHIELDED (Immune to 1 capture)")
+		if p.has_lightning:
+			props.append("⚡ DASH READY (Next move is instant)")
+		if p.is_on_fire:
+			props.append("🔥 ON FIRE (+Combo streak buff)")
+
+		if props.size() > 0:
+			var player_label = "RED" if p.player == Piece.Player.RED else "BLACK"
+			title = "%s UNIT PROPERTIES" % player_label
+			desc = "\n".join(props)
+			badge_color = Color(1.0, 0.85, 0.3) if p.player == Piece.Player.RED else Color(0.4, 0.85, 1.0)
+
+	# If no special properties, don't show tooltip!
+	if title == "":
+		return
+
+	# Draw Floating Pixel Tooltip Card
+	var anchor = Vector2(tile.x * TILE_W + TILE_W * 0.5, tile.y * TILE_H - 12.0)
+	
+	# Clamp anchor so tooltip stays nicely inside viewport
+	var card_w = 230.0
+	var card_h = 48.0 if desc.count("\n") > 0 else 38.0
+	var card_x = clampf(anchor.x - card_w * 0.5, 8.0, BOARD_SIZE * TILE_W - card_w - 8.0)
+	var card_y = anchor.y - card_h - 10.0
+	if card_y < -4.0:
+		card_y = anchor.y + TILE_H + 18.0
+
+	var card_rect = Rect2(card_x, card_y, card_w, card_h)
+
+	# Card Drop Shadow & Pixel Bevel Border
+	draw_rect(Rect2(card_x + 3, card_y + 3, card_w, card_h), Color(0, 0, 0, 0.45))
+	draw_rect(card_rect, Color(0.08, 0.09, 0.14, 0.96))
+	draw_rect(card_rect, badge_color, false, 1.5)
+
+	# Header Title
+	var default_font = ThemeDB.fallback_font
+	draw_string(default_font, Vector2(card_x + 10, card_y + 16), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, badge_color)
+
+	# Description Text
+	var lines = desc.split("\n")
+	var line_y = card_y + 30
+	for l in lines:
+		draw_string(default_font, Vector2(card_x + 10, line_y), l, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.9, 0.92, 0.95))
+		line_y += 13
