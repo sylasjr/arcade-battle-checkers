@@ -318,31 +318,43 @@ func _handle_powerup_landing(piece: Piece, pos: Vector2i) -> void:
 	emit_signal("powerup_triggered", p_type, to_global(piece.position))
 
 	if p_type == PowerUpManager.PowerType.BOMB:
-		var cross_dirs = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]
-		for d in cross_dirs:
+		# Bomb: Explodes in all 8 surrounding diagonal & cardinal tiles
+		var blast_dirs = [
+			Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0),
+			Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)
+		]
+		for d in blast_dirs:
 			var target_pos = pos + d
 			if grid.has(target_pos):
 				var adj_p: Piece = grid[target_pos]
 				if adj_p.player != piece.player:
 					if adj_p.has_shield:
 						adj_p.break_shield()
+						emit_signal("powerup_triggered", PowerUpManager.PowerType.SHIELD, to_global(adj_p.position))
 					else:
 						grid.erase(target_pos)
 						emit_signal("piece_captured", to_global(adj_p.position), adj_p.player)
-						adj_p.queue_free()
+						emit_signal("piece_ignited", to_global(adj_p.position))
+						var tween = create_tween()
+						tween.tween_property(adj_p, "scale", Vector2.ZERO, 0.15)
+						tween.tween_callback(adj_p.queue_free)
 		emit_counts()
 
 	elif p_type == PowerUpManager.PowerType.PORTAL:
+		# Warp Portal: Teleport piece smoothly across space to linked portal
 		var dest_portal = p_data.linked_portal
 		if dest_portal != Vector2i(-1, -1) and not grid.has(dest_portal):
 			grid.erase(pos)
 			grid[dest_portal] = piece
+			piece.grid_pos = dest_portal
 			piece.move_to(dest_portal, true)
 
 	elif p_type == PowerUpManager.PowerType.SHIELD:
+		# Shield: Grants 1-hit invulnerability dome
 		piece.give_shield()
 
 	elif p_type == PowerUpManager.PowerType.LIGHTNING:
+		# Lightning: Grants omnidirectional agility aura and instant extra move
 		piece.give_lightning()
 
 	powerup_manager.remove_power(pos)
